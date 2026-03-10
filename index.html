@@ -91,6 +91,29 @@
     text-align: right;
   }
 
+
+
+  #status-strip {
+    height: 20px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    background: #0c1423;
+  }
+  #health-pill {
+    padding: 1px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    color: var(--accent2);
+  }
+  #health-pill.warn { color: var(--warn); border-color: var(--warn); }
+  #health-pill.danger { color: var(--danger); border-color: var(--danger); }
+  .card.error { border-color: var(--danger); }
+
   /* ── MAIN GRID ── */
   #grid {
     display: grid;
@@ -98,7 +121,7 @@
     grid-template-rows: 1fr 1fr;
     gap: 8px;
     padding: 8px;
-    height: calc(480px - 56px - 28px);
+    height: calc(480px - 56px - 20px - 28px);
   }
 
   .card {
@@ -345,6 +368,11 @@
   </div>
 </div>
 
+<div id="status-strip">
+  <span id="status-text">Data: checking feeds…</span>
+  <span id="health-pill">healthy</span>
+</div>
+
 <!-- MAIN GRID -->
 <div id="grid">
 
@@ -426,6 +454,9 @@
 <script>
 const BASE = '/state';
 const REFRESH_MS = 30000;
+const STALE_WARN_MS = 10 * 60 * 1000;
+const STALE_DANGER_MS = 30 * 60 * 1000;
+const feedHealth = {};
 
 // ── Clock ──
 function tickClock() {
@@ -451,10 +482,71 @@ function fmtTime(iso) {
 function fmtTemp(c) { return Math.round(c * 9/5 + 32) + '°F'; }
 function fmtWind(ms) { return Math.round(ms * 2.237) + ' mph'; }
 
+
+function ageMs(iso) {
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return null;
+  return Date.now() - t;
+}
+
+function humanAge(ms) {
+  if (ms == null) return 'unknown';
+  const m = Math.round(ms / 60000);
+  if (m < 1) return '<1m';
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  const rem = m % 60;
+  return rem ? `${h}h ${rem}m` : `${h}h`;
+}
+
+function markFeed(name, ok, detail = '') {
+  feedHealth[name] = { ok, detail, ts: Date.now() };
+  renderHealth();
+}
+
+function renderHealth() {
+  const vals = Object.values(feedHealth);
+  const total = vals.length;
+  const bad = vals.filter(v => !v.ok).length;
+  const statusText = document.getElementById('status-text');
+  const pill = document.getElementById('health-pill');
+  if (!total) return;
+
+  if (bad === 0) {
+    statusText.textContent = `Data feeds healthy (${total}/${total})`;
+    pill.textContent = 'healthy';
+    pill.className = '';
+    return;
+  }
+
+  statusText.textContent = `${bad} feed${bad>1?'s':''} need attention`;
+  if (bad >= 3) {
+    pill.textContent = 'degraded';
+    pill.className = 'danger';
+  } else {
+    pill.textContent = 'warning';
+    pill.className = 'warn';
+  }
+}
+
+async function fetchJson(path, feedName) {
+  try {
+    const resp = await fetch(path);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    markFeed(feedName, true);
+    return data;
+  } catch (e) {
+    markFeed(feedName, false, e.message || 'request failed');
+    throw e;
+  }
+}
+
 // ── Weather ──
 async function loadWeather() {
   try {
-    const d = await fetch(BASE + '/weather.json').then(r => r.json());
+    const d = await fetchJson(BASE + '/weather.json', 'weather');
     document.getElementById('weather-temp').textContent = fmtTemp(d.temp_c);
     document.getElementById('weather-desc').textContent = d.description;
     document.getElementById('weather-detail').textContent =
@@ -470,13 +562,13 @@ async function loadWeather() {
                  desc.includes('cloud') ? (desc.includes('few') ? '🌤️' : '☁️') :
                  desc.includes('clear') ? '☀️' : '🌡️';
     document.getElementById('weather-icon').textContent = icon;
-  } catch(e) {}
+  } catch(e) { document.getElementById('weather-bar').style.opacity = 0.65; }
 }
 
 // ── Tasks ──
 async function loadTasks() {
   try {
-    const d = await fetch(BASE + '/todoist.json').then(r => r.json());
+    const d = await fetchJson(BASE + '/todoist.json', 'todoist');
     const tasks = d.tasks || [];
     const badge = document.getElementById('tasks-badge');
     badge.textContent = tasks.length;
@@ -502,13 +594,13 @@ async function loadTasks() {
     if (tasks.length > 4) {
       body.innerHTML += `<div style="font-size:12px;color:var(--muted);padding-top:4px">+${tasks.length-4} more</div>`;
     }
-  } catch(e) {}
+  } catch(e) { document.getElementById('card-tasks').classList.add('error'); }
 }
 
 // ── Calendar ──
 async function loadCalendar() {
   try {
-    const d = await fetch(BASE + '/calendar.json').then(r => r.json());
+    const d = await fetchJson(BASE + '/calendar.json', 'calendar');
     const events = d.events || [];
     const badge = document.getElementById('cal-badge');
     badge.textContent = events.length;
@@ -533,13 +625,13 @@ async function loadCalendar() {
     if (events.length > 4) {
       body.innerHTML += `<div style="font-size:12px;color:var(--muted);padding-top:4px">+${events.length-4} more</div>`;
     }
-  } catch(e) {}
+  } catch(e) { document.getElementById('card-cal').classList.add('error'); }
 }
 
 // ── Gmail ──
 async function loadGmail() {
   try {
-    const d = await fetch(BASE + '/gmail.json').then(r => r.json());
+    const d = await fetchJson(BASE + '/gmail.json', 'gmail');
     const msgs = d.messages || [];
     const badge = document.getElementById('mail-badge');
     badge.textContent = d.count || msgs.length;
@@ -557,13 +649,13 @@ async function loadGmail() {
         <div class="mail-subject">${esc(m.subject || '(no subject)')}</div>
       </div>`;
     }).join('');
-  } catch(e) {}
+  } catch(e) { document.getElementById('card-mail').classList.add('error'); }
 }
 
 // ── System ──
 async function loadSystem() {
   try {
-    const d = await fetch(BASE + '/services.json').then(r => r.json());
+    const d = await fetchJson(BASE + '/services.json', 'services');
     const pi = d.pi || {};
     const svcs = d.services || {};
 
@@ -615,13 +707,13 @@ async function loadSystem() {
       svcStatus.textContent = '● service down';
       svcStatus.style.color = 'var(--danger)';
     }
-  } catch(e) {}
+  } catch(e) { document.getElementById('card-system').classList.add('error'); }
 }
 
 // ── Lichess ──
 async function loadLichess() {
   try {
-    const d = await fetch(BASE + '/lichess.json').then(r => r.json());
+    const d = await fetchJson(BASE + '/lichess.json', 'lichess');
     const r = d.ratings || {};
     if (r.bullet) document.getElementById('chess-bullet').textContent = r.bullet;
     if (r.blitz)  document.getElementById('chess-blitz').textContent  = r.blitz;
@@ -632,11 +724,21 @@ async function loadLichess() {
 // ── Meta ──
 async function loadMeta() {
   try {
-    const d = await fetch(BASE + '/meta.json').then(r => r.json());
+    const d = await fetchJson(BASE + '/meta.json', 'meta');
     if (d.updated_at) {
       const t = new Date(d.updated_at);
+      const ms = ageMs(d.updated_at);
       document.getElementById('footer-updated').textContent =
-        'Updated ' + t.toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit',hour12:true});
+        'Updated ' + t.toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit',hour12:true}) + ` (${humanAge(ms)} ago)`;
+      const pill = document.getElementById('health-pill');
+      if (ms != null && ms > STALE_DANGER_MS) {
+        pill.textContent = 'stale';
+        pill.className = 'danger';
+        document.getElementById('status-text').textContent = `State data stale (${humanAge(ms)} old)`;
+      } else if (ms != null && ms > STALE_WARN_MS) {
+        pill.textContent = 'aging';
+        pill.className = 'warn';
+      }
     }
   } catch(e) {}
 }
@@ -647,6 +749,7 @@ function esc(s) {
 
 // ── Load all ──
 async function refresh() {
+  document.querySelectorAll('.card.error').forEach(el => el.classList.remove('error'));
   await Promise.all([
     loadWeather(), loadTasks(), loadCalendar(),
     loadGmail(), loadSystem(), loadLichess(), loadMeta()
