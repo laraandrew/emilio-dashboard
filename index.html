@@ -114,6 +114,62 @@
   #health-pill.danger { color: var(--danger); border-color: var(--danger); }
   .card.error { border-color: var(--danger); }
 
+  #status-right { display:flex; align-items:center; gap:8px; }
+  .strip-btn {
+    height: 18px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: #111a2b;
+    color: var(--text);
+    padding: 0 8px;
+    font-size: 11px;
+  }
+  .strip-btn.active { border-color: var(--accent); color: var(--accent); }
+  .task-priority { font-size: 10px; color: var(--dim); margin-right: 4px; }
+  .cal-item.next { background: #0d1a2b; border-radius: 6px; padding: 6px 6px; border-bottom: none; margin-bottom: 4px; }
+
+  #touch-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(7, 11, 20, 0.96);
+    z-index: 999;
+    display: none;
+    flex-direction: column;
+    padding: 14px;
+    gap: 10px;
+  }
+  #touch-overlay.active { display: flex; }
+  #touch-header { display:flex; align-items:center; justify-content:space-between; }
+  #touch-title { font-size: 15px; font-weight: 700; }
+  #touch-close {
+    border:1px solid var(--border);
+    background:#19253a;
+    color:var(--text);
+    border-radius:8px;
+    padding:6px 10px;
+    font-size:13px;
+  }
+  #touch-grid {
+    flex:1;
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap:10px;
+  }
+  .touch-cell {
+    border:1px dashed #3a4f73;
+    border-radius:10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:14px;
+    color:var(--dim);
+    user-select:none;
+    touch-action: manipulation;
+  }
+  .touch-cell.hit { border-color: var(--accent2); background: rgba(16,185,129,0.14); color: var(--text); }
+  #touch-status { font-size: 12px; color: var(--muted); }
+
   /* ── MAIN GRID ── */
   #grid {
     display: grid;
@@ -370,7 +426,10 @@
 
 <div id="status-strip">
   <span id="status-text">Data: checking feeds…</span>
-  <span id="health-pill">healthy</span>
+  <div id="status-right">
+    <button id="touch-test-btn" class="strip-btn" type="button">Touch test</button>
+    <span id="health-pill">healthy</span>
+  </div>
 </div>
 
 <!-- MAIN GRID -->
@@ -449,6 +508,22 @@
   <span class="chess-rating"><span class="chess-mode">Bullet</span>&nbsp;<span class="chess-val" id="chess-bullet">--</span></span>
   <span class="chess-rating"><span class="chess-mode">Blitz</span>&nbsp;<span class="chess-val" id="chess-blitz">--</span></span>
   <span class="chess-rating"><span class="chess-mode">Rapid</span>&nbsp;<span class="chess-val" id="chess-rapid">--</span></span>
+</div>
+
+<div id="touch-overlay" aria-hidden="true">
+  <div id="touch-header">
+    <div id="touch-title">Touchscreen test mode</div>
+    <button id="touch-close" type="button">Exit test</button>
+  </div>
+  <div id="touch-grid">
+    <div class="touch-cell" data-cell="1">Top-left</div>
+    <div class="touch-cell" data-cell="2">Top-center</div>
+    <div class="touch-cell" data-cell="3">Top-right</div>
+    <div class="touch-cell" data-cell="4">Bottom-left</div>
+    <div class="touch-cell" data-cell="5">Bottom-center</div>
+    <div class="touch-cell" data-cell="6">Bottom-right</div>
+  </div>
+  <div id="touch-status">Tap each area once to verify cracked-screen responsiveness.</div>
 </div>
 
 <script>
@@ -579,20 +654,21 @@ async function loadTasks() {
       body.innerHTML = '<div class="empty">No tasks due today</div>';
       return;
     }
+    const ranked = [...tasks].sort((a,b)=> (b.priority||1)-(a.priority||1));
     // show up to 4
-    body.innerHTML = tasks.slice(0,4).map(t => {
+    body.innerHTML = ranked.slice(0,4).map(t => {
       const p = t.priority || 1;
       const dotClass = p === 4 ? 'p4' : p === 3 ? 'p3' : p === 2 ? 'p2' : '';
       const due = t.due_string || '';
       const overdue = due.toLowerCase().includes('yesterday') || due.toLowerCase().includes('ago');
       return `<div class="task-item">
         <div class="task-dot ${dotClass}"></div>
-        <div class="task-text">${esc(t.content)}</div>
+        <div class="task-text"><span class="task-priority">P${p}</span>${esc(t.content)}</div>
         <div class="task-due${overdue?' overdue':''}">${esc(due)}</div>
       </div>`;
     }).join('');
-    if (tasks.length > 4) {
-      body.innerHTML += `<div style="font-size:12px;color:var(--muted);padding-top:4px">+${tasks.length-4} more</div>`;
+    if (ranked.length > 4) {
+      body.innerHTML += `<div style="font-size:12px;color:var(--muted);padding-top:4px">+${ranked.length-4} more</div>`;
     }
   } catch(e) { document.getElementById('card-tasks').classList.add('error'); }
 }
@@ -611,10 +687,14 @@ async function loadCalendar() {
       body.innerHTML = '<div class="empty">Nothing scheduled today</div>';
       return;
     }
-    body.innerHTML = events.slice(0,4).map(ev => {
+    const now = Date.now();
+    const upcoming = [...events].sort((a,b)=> new Date(a.start||a.end||0)-new Date(b.start||b.end||0));
+    body.innerHTML = upcoming.slice(0,4).map((ev, idx) => {
       const isAllDay = ev.start && ev.start.length === 10;
       const timeStr = isAllDay ? 'all day' : fmtTime(ev.start);
-      return `<div class="cal-item">
+      const startTs = new Date(ev.start || ev.end || 0).getTime();
+      const isNext = !isAllDay && startTs >= now && idx === 0;
+      return `<div class="cal-item${isNext?' next' : ''}">
         <div class="cal-time${isAllDay?' allday':''}">${esc(timeStr)}</div>
         <div>
           <div class="cal-summary">${esc(ev.summary || '(no title)')}</div>
@@ -747,6 +827,48 @@ function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+
+let touchHits = 0;
+
+function initTouchTest() {
+  const btn = document.getElementById('touch-test-btn');
+  const overlay = document.getElementById('touch-overlay');
+  const close = document.getElementById('touch-close');
+  const status = document.getElementById('touch-status');
+  const cells = Array.from(document.querySelectorAll('.touch-cell'));
+
+  function openTest() {
+    overlay.classList.add('active');
+    overlay.setAttribute('aria-hidden', 'false');
+    btn.classList.add('active');
+    touchHits = 0;
+    cells.forEach(c => c.classList.remove('hit'));
+    status.textContent = 'Tap each area once to verify cracked-screen responsiveness.';
+  }
+
+  function closeTest() {
+    overlay.classList.remove('active');
+    overlay.setAttribute('aria-hidden', 'true');
+    btn.classList.remove('active');
+  }
+
+  btn.addEventListener('click', openTest);
+  close.addEventListener('click', closeTest);
+
+  cells.forEach(cell => {
+    const mark = () => {
+      if (!cell.classList.contains('hit')) {
+        cell.classList.add('hit');
+        touchHits += 1;
+      }
+      status.textContent = `Touch points confirmed: ${touchHits}/6`;
+      if (touchHits === 6) status.textContent = 'All zones responsive ✅';
+    };
+    cell.addEventListener('pointerdown', mark);
+    cell.addEventListener('touchstart', mark, { passive: true });
+  });
+}
+
 // ── Load all ──
 async function refresh() {
   document.querySelectorAll('.card.error').forEach(el => el.classList.remove('error'));
@@ -756,6 +878,7 @@ async function refresh() {
   ]);
 }
 
+initTouchTest();
 refresh();
 setInterval(refresh, REFRESH_MS);
 </script>
