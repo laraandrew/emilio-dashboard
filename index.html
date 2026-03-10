@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=800, initial-scale=1">
+<title>Emilio</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --border: #1e2d45;
+    --accent: #3b82f6;
+    --accent2: #10b981;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --text: #f1f5f9;
+    --muted: #64748b;
+    --dim: #94a3b8;
+  }
+
+  html, body {
+    width: 800px; height: 480px;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'SF Pro Display', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 15px;
+  }
+
+  /* ── TOP BAR ── */
+  #topbar {
+    display: flex;
+    align-items: center;
+    height: 56px;
+    padding: 0 16px;
+    background: linear-gradient(135deg, #0f1b2e 0%, #111827 100%);
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+  }
+  #brand {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+    flex-shrink: 0;
+  }
+  #brand span { color: var(--text); }
+
+  #weather-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+  }
+  #weather-icon { font-size: 22px; }
+  #weather-temp {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1;
+  }
+  #weather-desc {
+    font-size: 13px;
+    color: var(--dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #weather-detail {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  #clock-block {
+    text-align: right;
+    flex-shrink: 0;
+  }
+  #clock {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -1px;
+    font-variant-numeric: tabular-nums;
+  }
+  #date-str {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: right;
+  }
+
+  /* ── MAIN GRID ── */
+  #grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 8px;
+    padding: 8px;
+    height: calc(480px - 56px - 28px);
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    border-radius: 10px 10px 0 0;
+  }
+  #card-tasks::before   { background: linear-gradient(90deg, #3b82f6, #6366f1); }
+  #card-cal::before     { background: linear-gradient(90deg, #10b981, #06b6d4); }
+  #card-mail::before    { background: linear-gradient(90deg, #f59e0b, #ef4444); }
+  #card-system::before  { background: linear-gradient(90deg, #8b5cf6, #ec4899); }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 7px;
+    flex-shrink: 0;
+  }
+  .card-icon { font-size: 16px; }
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--dim);
+  }
+  .badge {
+    margin-left: auto;
+    font-size: 12px;
+    font-weight: 700;
+    background: var(--border);
+    color: var(--dim);
+    padding: 1px 7px;
+    border-radius: 20px;
+  }
+  .badge.active { background: var(--accent); color: #fff; }
+  .badge.warn { background: var(--warn); color: #000; }
+
+  .card-body { flex: 1; overflow: hidden; }
+
+  /* Task items */
+  .task-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    padding: 4px 0;
+    border-bottom: 1px solid #1a2234;
+    font-size: 14px;
+    line-height: 1.3;
+  }
+  .task-item:last-child { border-bottom: none; }
+  .task-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    margin-top: 4px;
+    flex-shrink: 0;
+  }
+  .task-dot.p4 { background: #ef4444; }
+  .task-dot.p3 { background: #f59e0b; }
+  .task-dot.p2 { background: #3b82f6; }
+  .task-text {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text);
+  }
+  .task-due {
+    font-size: 11px;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+  .task-due.overdue { color: var(--danger); }
+
+  /* Calendar items */
+  .cal-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 4px 0;
+    border-bottom: 1px solid #1a2234;
+  }
+  .cal-item:last-child { border-bottom: none; }
+  .cal-time {
+    font-size: 12px;
+    color: var(--accent2);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    min-width: 50px;
+    font-weight: 600;
+  }
+  .cal-time.allday { color: var(--muted); font-size: 11px; }
+  .cal-summary {
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text);
+  }
+  .cal-loc {
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Mail items */
+  .mail-item {
+    display: flex;
+    flex-direction: column;
+    padding: 4px 0;
+    border-bottom: 1px solid #1a2234;
+    gap: 1px;
+  }
+  .mail-item:last-child { border-bottom: none; }
+  .mail-from {
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text);
+  }
+  .mail-subject {
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--dim);
+  }
+
+  /* System card */
+  .sys-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    height: 100%;
+  }
+  .sys-stat {
+    background: #0d1525;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 6px 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .sys-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+  }
+  .sys-value {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--text);
+  }
+  .sys-value.warn { color: var(--warn); }
+  .sys-value.danger { color: var(--danger); }
+  .sys-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 1px;
+  }
+  .service-dots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+  }
+  .svc-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent2);
+    title: '';
+  }
+  .svc-dot.down { background: var(--danger); }
+
+  /* ── FOOTER ── */
+  #footer {
+    height: 28px;
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    gap: 16px;
+    background: #0a0e1a;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--muted);
+  }
+  #footer-updated { margin-right: auto; }
+  .chess-rating { display: flex; align-items: center; gap: 4px; }
+  .chess-mode { color: var(--dim); }
+  .chess-val { color: var(--text); font-weight: 600; }
+
+  /* Empty states */
+  .empty {
+    color: var(--muted);
+    font-size: 14px;
+    padding-top: 8px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <div id="brand">emilio<span>.</span></div>
+
+  <div id="weather-bar">
+    <span id="weather-icon">🌡️</span>
+    <div>
+      <div id="weather-temp">--°F</div>
+      <div id="weather-desc">--</div>
+    </div>
+    <div style="margin-left:8px">
+      <div id="weather-detail">Humidity --%</div>
+      <div id="weather-wind" style="font-size:12px;color:var(--muted)">Wind -- mph</div>
+    </div>
+  </div>
+
+  <div id="clock-block">
+    <div id="clock">--:--</div>
+    <div id="date-str">Loading...</div>
+  </div>
+</div>
+
+<!-- MAIN GRID -->
+<div id="grid">
+
+  <div class="card" id="card-tasks">
+    <div class="card-header">
+      <span class="card-icon">✅</span>
+      <span class="card-title">Tasks</span>
+      <span class="badge" id="tasks-badge">0</span>
+    </div>
+    <div class="card-body" id="tasks-body">
+      <div class="empty">No tasks due today</div>
+    </div>
+  </div>
+
+  <div class="card" id="card-cal">
+    <div class="card-header">
+      <span class="card-icon">📅</span>
+      <span class="card-title">Calendar</span>
+      <span class="badge" id="cal-badge">0</span>
+    </div>
+    <div class="card-body" id="cal-body">
+      <div class="empty">Nothing scheduled today</div>
+    </div>
+  </div>
+
+  <div class="card" id="card-mail">
+    <div class="card-header">
+      <span class="card-icon">📬</span>
+      <span class="card-title">Inbox</span>
+      <span class="badge" id="mail-badge">0</span>
+    </div>
+    <div class="card-body" id="mail-body">
+      <div class="empty">Inbox zero ✨</div>
+    </div>
+  </div>
+
+  <div class="card" id="card-system">
+    <div class="card-header">
+      <span class="card-icon">🖥️</span>
+      <span class="card-title">System</span>
+      <span id="svc-status" style="margin-left:auto;font-size:11px;color:var(--accent2)">● all up</span>
+    </div>
+    <div class="card-body">
+      <div class="sys-grid">
+        <div class="sys-stat">
+          <div class="sys-label">CPU Temp</div>
+          <div class="sys-value" id="sys-temp">--°C</div>
+          <div class="sys-sub" id="sys-load">Load: --</div>
+        </div>
+        <div class="sys-stat">
+          <div class="sys-label">Memory</div>
+          <div class="sys-value" id="sys-mem">--%</div>
+          <div class="sys-sub" id="sys-mem-sub">-- GB free</div>
+        </div>
+        <div class="sys-stat">
+          <div class="sys-label">Disk</div>
+          <div class="sys-value" id="sys-disk">--%</div>
+          <div class="sys-sub" id="sys-disk-sub">-- GB free</div>
+        </div>
+        <div class="sys-stat">
+          <div class="sys-label">Services</div>
+          <div class="service-dots" id="svc-dots"></div>
+          <div class="sys-sub" id="sys-uptime">Up --</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<div id="footer">
+  <span id="footer-updated">Updated --:--</span>
+  <span class="chess-rating"><span class="chess-mode">Bullet</span>&nbsp;<span class="chess-val" id="chess-bullet">--</span></span>
+  <span class="chess-rating"><span class="chess-mode">Blitz</span>&nbsp;<span class="chess-val" id="chess-blitz">--</span></span>
+  <span class="chess-rating"><span class="chess-mode">Rapid</span>&nbsp;<span class="chess-val" id="chess-rapid">--</span></span>
+</div>
+
+<script>
+const BASE = '/state';
+const REFRESH_MS = 30000;
+
+// ── Clock ──
+function tickClock() {
+  const now = new Date();
+  const h = now.getHours(), m = now.getMinutes();
+  document.getElementById('clock').textContent =
+    String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('date-str').textContent =
+    days[now.getDay()] + ', ' + months[now.getMonth()] + ' ' + now.getDate();
+}
+setInterval(tickClock, 1000);
+tickClock();
+
+// ── Helpers ──
+function fmtTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d)) return iso;
+  return d.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit', hour12:true});
+}
+function fmtTemp(c) { return Math.round(c * 9/5 + 32) + '°F'; }
+function fmtWind(ms) { return Math.round(ms * 2.237) + ' mph'; }
+
+// ── Weather ──
+async function loadWeather() {
+  try {
+    const d = await fetch(BASE + '/weather.json').then(r => r.json());
+    document.getElementById('weather-temp').textContent = fmtTemp(d.temp_c);
+    document.getElementById('weather-desc').textContent = d.description;
+    document.getElementById('weather-detail').textContent =
+      'Feels ' + fmtTemp(d.feels_like_c) + '  · ' + d.humidity_pct + '% humid';
+    document.getElementById('weather-wind').textContent =
+      'Wind ' + fmtWind(d.wind_speed_ms) + ' ' + (d.wind_dir || '');
+
+    // icon
+    const desc = (d.description || '').toLowerCase();
+    const icon = desc.includes('thunder') ? '⛈️' :
+                 desc.includes('snow') ? '❄️' :
+                 desc.includes('rain') || desc.includes('drizzle') ? '🌧️' :
+                 desc.includes('cloud') ? (desc.includes('few') ? '🌤️' : '☁️') :
+                 desc.includes('clear') ? '☀️' : '🌡️';
+    document.getElementById('weather-icon').textContent = icon;
+  } catch(e) {}
+}
+
+// ── Tasks ──
+async function loadTasks() {
+  try {
+    const d = await fetch(BASE + '/todoist.json').then(r => r.json());
+    const tasks = d.tasks || [];
+    const badge = document.getElementById('tasks-badge');
+    badge.textContent = tasks.length;
+    badge.className = 'badge' + (tasks.length > 0 ? ' active' : '');
+
+    const body = document.getElementById('tasks-body');
+    if (!tasks.length) {
+      body.innerHTML = '<div class="empty">No tasks due today</div>';
+      return;
+    }
+    // show up to 4
+    body.innerHTML = tasks.slice(0,4).map(t => {
+      const p = t.priority || 1;
+      const dotClass = p === 4 ? 'p4' : p === 3 ? 'p3' : p === 2 ? 'p2' : '';
+      const due = t.due_string || '';
+      const overdue = due.toLowerCase().includes('yesterday') || due.toLowerCase().includes('ago');
+      return `<div class="task-item">
+        <div class="task-dot ${dotClass}"></div>
+        <div class="task-text">${esc(t.content)}</div>
+        <div class="task-due${overdue?' overdue':''}">${esc(due)}</div>
+      </div>`;
+    }).join('');
+    if (tasks.length > 4) {
+      body.innerHTML += `<div style="font-size:12px;color:var(--muted);padding-top:4px">+${tasks.length-4} more</div>`;
+    }
+  } catch(e) {}
+}
+
+// ── Calendar ──
+async function loadCalendar() {
+  try {
+    const d = await fetch(BASE + '/calendar.json').then(r => r.json());
+    const events = d.events || [];
+    const badge = document.getElementById('cal-badge');
+    badge.textContent = events.length;
+    badge.className = 'badge' + (events.length > 0 ? ' active' : '');
+
+    const body = document.getElementById('cal-body');
+    if (!events.length) {
+      body.innerHTML = '<div class="empty">Nothing scheduled today</div>';
+      return;
+    }
+    body.innerHTML = events.slice(0,4).map(ev => {
+      const isAllDay = ev.start && ev.start.length === 10;
+      const timeStr = isAllDay ? 'all day' : fmtTime(ev.start);
+      return `<div class="cal-item">
+        <div class="cal-time${isAllDay?' allday':''}">${esc(timeStr)}</div>
+        <div>
+          <div class="cal-summary">${esc(ev.summary || '(no title)')}</div>
+          ${ev.location ? `<div class="cal-loc">📍 ${esc(ev.location)}</div>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+    if (events.length > 4) {
+      body.innerHTML += `<div style="font-size:12px;color:var(--muted);padding-top:4px">+${events.length-4} more</div>`;
+    }
+  } catch(e) {}
+}
+
+// ── Gmail ──
+async function loadGmail() {
+  try {
+    const d = await fetch(BASE + '/gmail.json').then(r => r.json());
+    const msgs = d.messages || [];
+    const badge = document.getElementById('mail-badge');
+    badge.textContent = d.count || msgs.length;
+    badge.className = 'badge' + (msgs.length > 0 ? ' warn' : '');
+
+    const body = document.getElementById('mail-body');
+    if (!msgs.length) {
+      body.innerHTML = '<div class="empty">Inbox zero ✨</div>';
+      return;
+    }
+    body.innerHTML = msgs.slice(0,4).map(m => {
+      const from = (m.from || '').replace(/<[^>]+>/, '').trim().replace(/"/g,'');
+      return `<div class="mail-item">
+        <div class="mail-from">${esc(from)}</div>
+        <div class="mail-subject">${esc(m.subject || '(no subject)')}</div>
+      </div>`;
+    }).join('');
+  } catch(e) {}
+}
+
+// ── System ──
+async function loadSystem() {
+  try {
+    const d = await fetch(BASE + '/services.json').then(r => r.json());
+    const pi = d.pi || {};
+    const svcs = d.services || {};
+
+    const temp = pi.cpu_temp_c || 0;
+    const tempEl = document.getElementById('sys-temp');
+    tempEl.textContent = temp.toFixed(1) + '°C';
+    tempEl.className = 'sys-value' + (temp > 75 ? ' danger' : temp > 65 ? ' warn' : '');
+
+    const load = pi.load_avg || {};
+    document.getElementById('sys-load').textContent = 'Load: ' + (load['1m'] || '--');
+
+    const mem = pi.memory || {};
+    const memPct = mem.total_mb ? Math.round(mem.used_mb / mem.total_mb * 100) : 0;
+    const memEl = document.getElementById('sys-mem');
+    memEl.textContent = memPct + '%';
+    memEl.className = 'sys-value' + (memPct > 85 ? ' danger' : memPct > 70 ? ' warn' : '');
+    document.getElementById('sys-mem-sub').textContent =
+      (mem.free_mb ? (mem.free_mb / 1024).toFixed(1) : '--') + ' GB free';
+
+    const disk = pi.disk || {};
+    const diskPct = parseInt(disk.pct) || 0;
+    const diskEl = document.getElementById('sys-disk');
+    diskEl.textContent = diskPct + '%';
+    diskEl.className = 'sys-value' + (diskPct > 85 ? ' danger' : diskPct > 70 ? ' warn' : '');
+    document.getElementById('sys-disk-sub').textContent =
+      disk.avail_kb ? ((disk.avail_kb/1024/1024).toFixed(0)) + ' GB free' : '--';
+
+    // uptime
+    const upSec = pi.uptime_sec || 0;
+    const upStr = upSec > 86400 ? Math.floor(upSec/86400) + 'd ' + Math.floor((upSec%86400)/3600) + 'h' :
+                  upSec > 3600 ? Math.floor(upSec/3600) + 'h ' + Math.floor((upSec%3600)/60) + 'm' :
+                  Math.floor(upSec/60) + 'm';
+    document.getElementById('sys-uptime').textContent = 'Up ' + upStr;
+
+    // services
+    const dotsEl = document.getElementById('svc-dots');
+    let allUp = true;
+    dotsEl.innerHTML = Object.entries(svcs).map(([name, status]) => {
+      const ok = status === 'active';
+      if (!ok) allUp = false;
+      return `<div class="svc-dot${ok?'':' down'}" title="${name}: ${status}"></div>`;
+    }).join('');
+
+    const svcStatus = document.getElementById('svc-status');
+    if (allUp) {
+      svcStatus.textContent = '● all up';
+      svcStatus.style.color = 'var(--accent2)';
+    } else {
+      svcStatus.textContent = '● service down';
+      svcStatus.style.color = 'var(--danger)';
+    }
+  } catch(e) {}
+}
+
+// ── Lichess ──
+async function loadLichess() {
+  try {
+    const d = await fetch(BASE + '/lichess.json').then(r => r.json());
+    const r = d.ratings || {};
+    if (r.bullet) document.getElementById('chess-bullet').textContent = r.bullet;
+    if (r.blitz)  document.getElementById('chess-blitz').textContent  = r.blitz;
+    if (r.rapid)  document.getElementById('chess-rapid').textContent  = r.rapid;
+  } catch(e) {}
+}
+
+// ── Meta ──
+async function loadMeta() {
+  try {
+    const d = await fetch(BASE + '/meta.json').then(r => r.json());
+    if (d.updated_at) {
+      const t = new Date(d.updated_at);
+      document.getElementById('footer-updated').textContent =
+        'Updated ' + t.toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit',hour12:true});
+    }
+  } catch(e) {}
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Load all ──
+async function refresh() {
+  await Promise.all([
+    loadWeather(), loadTasks(), loadCalendar(),
+    loadGmail(), loadSystem(), loadLichess(), loadMeta()
+  ]);
+}
+
+refresh();
+setInterval(refresh, REFRESH_MS);
+</script>
+</body>
+</html>
