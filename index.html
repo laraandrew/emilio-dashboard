@@ -121,7 +121,7 @@
     grid-template-rows: 1fr 1fr;
     gap: 8px;
     padding: 8px;
-    height: calc(480px - 56px - 20px - 28px);
+    height: calc(480px - 56px - 20px - 34px - 28px);
   }
 
   .card {
@@ -318,6 +318,33 @@
   }
   .svc-dot.down { background: var(--danger); }
 
+
+
+  #work-strip {
+    height: 34px;
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 8px;
+    align-items: center;
+    padding: 0 12px;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: #0b1220;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .work-pill {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 3px 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background: #0f182a;
+  }
+  #work-current strong { color: var(--text); }
+  #work-progress strong { color: var(--accent); }
+
   /* ── FOOTER ── */
   #footer {
     height: 28px;
@@ -443,9 +470,18 @@
 
 </div>
 
+<!-- WORK STATUS -->
+
+<div id="work-strip">
+  <div class="work-pill" id="work-current">Current: <strong>idle</strong></div>
+  <div class="work-pill" id="work-progress">Progress: <strong>--</strong></div>
+  <div class="work-pill" id="work-next">Next: --</div>
+</div>
+
 <!-- FOOTER -->
 <div id="footer">
   <span id="footer-updated">Updated --:--</span>
+  <span id="work-prev">Prev: --</span>
   <span class="chess-rating"><span class="chess-mode">Bullet</span>&nbsp;<span class="chess-val" id="chess-bullet">--</span></span>
   <span class="chess-rating"><span class="chess-mode">Blitz</span>&nbsp;<span class="chess-val" id="chess-blitz">--</span></span>
   <span class="chess-rating"><span class="chess-mode">Rapid</span>&nbsp;<span class="chess-val" id="chess-rapid">--</span></span>
@@ -747,12 +783,36 @@ function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+
+async function loadWorkStatus() {
+  try {
+    const d = await fetchJson(BASE + '/meta.json', 'meta');
+    const current = d.current_task || d.active_task || 'idle';
+    const progress = d.task_progress_pct ?? d.progress_pct ?? null;
+    const next = d.next_task || '--';
+    const prev = d.previous_task || d.prev_task || '--';
+
+    const curEl = document.getElementById('work-current');
+    const progEl = document.getElementById('work-progress');
+    const nextEl = document.getElementById('work-next');
+    const prevEl = document.getElementById('work-prev');
+
+    curEl.innerHTML = `Current: <strong>${esc(current)}</strong>`;
+    progEl.innerHTML = `Progress: <strong>${progress == null ? '--' : Math.max(0, Math.min(100, Number(progress))) + '%'}</strong>`;
+    nextEl.textContent = `Next: ${next}`;
+    prevEl.textContent = `Prev: ${prev}`;
+  } catch (e) {
+    document.getElementById('work-current').innerHTML = 'Current: <strong>unavailable</strong>';
+    document.getElementById('work-progress').innerHTML = 'Progress: <strong>--</strong>';
+  }
+}
+
 // ── Load all ──
 async function refresh() {
   document.querySelectorAll('.card.error').forEach(el => el.classList.remove('error'));
   await Promise.all([
     loadWeather(), loadTasks(), loadCalendar(),
-    loadGmail(), loadSystem(), loadLichess(), loadMeta()
+    loadGmail(), loadSystem(), loadLichess(), loadMeta(), loadWorkStatus()
   ]);
 }
 
