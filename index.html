@@ -323,7 +323,7 @@
   #work-strip {
     height: 34px;
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
     gap: 8px;
     align-items: center;
     padding: 0 12px;
@@ -344,6 +344,13 @@
   }
   #work-current strong { color: var(--text); }
   #work-progress strong { color: var(--accent); }
+  #work-state { text-transform: uppercase; font-weight: 700; letter-spacing: .5px; }
+  #work-state.running { color: var(--accent2); }
+  #work-state.blocked { color: var(--danger); }
+  #work-state.waiting { color: var(--warn); }
+  #work-progress.low strong { color: var(--muted); }
+  #work-progress.mid strong { color: var(--warn); }
+  #work-progress.high strong { color: var(--accent2); }
 
   /* ── FOOTER ── */
   #footer {
@@ -476,6 +483,7 @@
   <div class="work-pill" id="work-current">Current: <strong>idle</strong></div>
   <div class="work-pill" id="work-progress">Progress: <strong>--</strong></div>
   <div class="work-pill" id="work-next">Next: --</div>
+  <div class="work-pill" id="work-state">STATE: IDLE</div>
 </div>
 
 <!-- FOOTER -->
@@ -788,22 +796,37 @@ async function loadWorkStatus() {
   try {
     const d = await fetchJson(BASE + '/meta.json', 'meta');
     const current = d.current_task || d.active_task || 'idle';
-    const progress = d.task_progress_pct ?? d.progress_pct ?? null;
+    const progressRaw = d.task_progress_pct ?? d.progress_pct ?? null;
+    const progress = progressRaw == null ? null : Math.max(0, Math.min(100, Number(progressRaw)));
     const next = d.next_task || '--';
     const prev = d.previous_task || d.prev_task || '--';
+    const state = (d.task_state || d.work_state || (progress === 100 ? 'done' : current === 'idle' ? 'idle' : 'running')).toLowerCase();
 
     const curEl = document.getElementById('work-current');
     const progEl = document.getElementById('work-progress');
     const nextEl = document.getElementById('work-next');
     const prevEl = document.getElementById('work-prev');
+    const stateEl = document.getElementById('work-state');
 
     curEl.innerHTML = `Current: <strong>${esc(current)}</strong>`;
-    progEl.innerHTML = `Progress: <strong>${progress == null ? '--' : Math.max(0, Math.min(100, Number(progress))) + '%'}</strong>`;
+    progEl.innerHTML = `Progress: <strong>${progress == null ? '--' : progress + '%'}</strong>`;
+    progEl.classList.remove('low','mid','high');
+    if (progress == null || progress < 25) progEl.classList.add('low');
+    else if (progress < 75) progEl.classList.add('mid');
+    else progEl.classList.add('high');
+
     nextEl.textContent = `Next: ${next}`;
     prevEl.textContent = `Prev: ${prev}`;
+
+    stateEl.textContent = `State: ${state}`;
+    stateEl.classList.remove('running','blocked','waiting');
+    if (state.includes('block')) stateEl.classList.add('blocked');
+    else if (state.includes('wait') || state.includes('review') || state.includes('paused')) stateEl.classList.add('waiting');
+    else stateEl.classList.add('running');
   } catch (e) {
     document.getElementById('work-current').innerHTML = 'Current: <strong>unavailable</strong>';
     document.getElementById('work-progress').innerHTML = 'Progress: <strong>--</strong>';
+    document.getElementById('work-state').textContent = 'State: unknown';
   }
 }
 
