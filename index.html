@@ -123,6 +123,28 @@ html, body { width: 800px; height: 480px; overflow: hidden; background: var(--bg
 
 /* ── Empty state ── */
 .empty { font-size: 11px; color: var(--muted); text-align: center; padding: 12px 0; }
+
+/* ── Touch test overlay ── */
+#touch-test-btn { font-size: 10px; padding: 3px 8px; }
+.task-priority { font-size: 10px; color: var(--muted); margin-right: 6px; font-weight: 700; }
+.row.next-up { border: 1px solid rgba(34,197,94,0.45); background: rgba(34,197,94,0.08); }
+#touch-overlay {
+  position: fixed; inset: 0; z-index: 1200;
+  display: none; flex-direction: column; gap: 10px;
+  background: rgba(7,7,15,0.97); padding: 12px;
+}
+#touch-overlay.active { display: flex; }
+#touch-head { display:flex; justify-content:space-between; align-items:center; }
+#touch-head h3 { font-size: 14px; }
+#touch-close { background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; }
+#touch-grid { flex:1; display:grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); gap: 10px; }
+.touch-cell {
+  border: 1px dashed #3a3a5e; border-radius: 10px;
+  display:flex; align-items:center; justify-content:center;
+  color: var(--muted); font-size: 12px; user-select: none; touch-action: manipulation;
+}
+.touch-cell.hit { border-color: var(--green); color: var(--text); background: rgba(34,197,94,0.12); }
+#touch-status { font-size: 12px; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -215,9 +237,26 @@ html, body { width: 800px; height: 480px; overflow: hidden; background: var(--bg
     <span class="chess-stat"><span class="chess-label">Bullet</span><span class="chess-val" id="chess-bullet">—</span></span>
   </div>
   <div id="footer-right">
+    <button id="touch-test-btn" onclick="openTouchTest()">Touch test</button>
     <span id="updated-label">Updated —</span>
     <button id="refresh-btn" onclick="loadAll()">↻ Refresh</button>
   </div>
+</div>
+
+<div id="touch-overlay" aria-hidden="true">
+  <div id="touch-head">
+    <h3>Touch test mode</h3>
+    <button id="touch-close" onclick="closeTouchTest()">Exit test</button>
+  </div>
+  <div id="touch-grid">
+    <div class="touch-cell" data-touch-cell="1">Top left</div>
+    <div class="touch-cell" data-touch-cell="2">Top center</div>
+    <div class="touch-cell" data-touch-cell="3">Top right</div>
+    <div class="touch-cell" data-touch-cell="4">Bottom left</div>
+    <div class="touch-cell" data-touch-cell="5">Bottom center</div>
+    <div class="touch-cell" data-touch-cell="6">Bottom right</div>
+  </div>
+  <div id="touch-status">Touch points confirmed: 0/6</div>
 </div>
 
 <div id="toast"></div>
@@ -306,7 +345,7 @@ async function loadWeather() {
 async function loadTasks() {
   try {
     const d = await fetch('/state/todoist.json').then(r => r.json());
-    const tasks = (d.tasks || []).slice(0, 6);
+    const tasks = (d.tasks || []).slice().sort((a,b) => (b.priority || 1) - (a.priority || 1)).slice(0, 6);
     const badge = document.getElementById('tasks-badge');
     badge.textContent = d.count || tasks.length;
     const overdue = tasks.filter(t => t.due_date && t.due_date < new Date().toISOString().slice(0,10)).length;
@@ -315,13 +354,14 @@ async function loadTasks() {
     const el = document.getElementById('tasks-list');
     if (!tasks.length) { el.innerHTML = '<div class="empty">All clear ✓</div>'; return; }
     el.innerHTML = tasks.map(t => {
+      const p = t.priority || 1;
       const due = t.due_date && t.due_date < new Date().toISOString().slice(0,10)
         ? `<span style="color:var(--red)">${t.due_date}</span>`
         : t.due_date ? `<span>${t.due_date}</span>` : '';
       return `<div class="row">
-        <div class="dot ${dotColor(t.priority)}"></div>
+        <div class="dot ${dotColor(p)}"></div>
         <div class="row-text">
-          <div class="row-main">${truncate(t.content, 42)}</div>
+          <div class="row-main"><span class="task-priority">P${p}</span>${truncate(t.content, 38)}</div>
           ${due ? `<div class="row-sub">${due}</div>` : ''}
         </div>
       </div>`;
@@ -388,20 +428,28 @@ async function markAllRead() {
 async function loadCalendar() {
   try {
     const d = await fetch('/state/calendar.json').then(r => r.json());
-    const events = (d.events || []).slice(0, 4);
+    const events = (d.events || []).slice().sort((a, b) => {
+      const aTs = a.start ? new Date(a.start).getTime() : Number.MAX_SAFE_INTEGER;
+      const bTs = b.start ? new Date(b.start).getTime() : Number.MAX_SAFE_INTEGER;
+      return aTs - bTs;
+    }).slice(0, 4);
     document.getElementById('cal-badge').textContent = d.count || events.length;
+
+    const now = Date.now();
+    const nextTimedIdx = events.findIndex(ev => ev.start && ev.start.includes('T') && new Date(ev.start).getTime() >= now);
 
     const el = document.getElementById('cal-list');
     if (!events.length) { el.innerHTML = '<div class="empty">Nothing today</div>'; return; }
-    el.innerHTML = events.map(ev => {
+    el.innerHTML = events.map((ev, idx) => {
       const isAllDay = ev.start && !ev.start.includes('T');
       const timeStr = isAllDay ? 'All day' : fmtTime(ev.start);
       const loc = ev.location ? `· ${truncate(ev.location, 20)}` : '';
-      return `<div class="row">
+      const rowClass = idx === nextTimedIdx ? 'row next-up' : 'row';
+      return `<div class="${rowClass}">
         <div class="dot purple"></div>
         <div class="row-text">
           <div class="row-main">${truncate(ev.summary, 36)}</div>
-          <div class="row-sub">${timeStr}${loc}</div>
+          <div class="row-sub">${timeStr}${loc}${idx === nextTimedIdx ? ' · NEXT' : ''}</div>
         </div>
       </div>`;
     }).join('');
@@ -467,6 +515,31 @@ async function loadChess() {
     document.getElementById('chess-bullet').textContent = r.bullet || '—';
   } catch(e) {}
 }
+
+// ── Touch test ───────────────────────────────────────────────────────────────
+const touchHits = new Set();
+function updateTouchStatus() {
+  const total = document.querySelectorAll('.touch-cell').length;
+  document.getElementById('touch-status').textContent = `Touch points confirmed: ${touchHits.size}/${total}`;
+}
+function openTouchTest() {
+  touchHits.clear();
+  document.querySelectorAll('.touch-cell').forEach(c => c.classList.remove('hit'));
+  document.getElementById('touch-overlay').classList.add('active');
+  updateTouchStatus();
+}
+function closeTouchTest() {
+  document.getElementById('touch-overlay').classList.remove('active');
+}
+document.querySelectorAll('.touch-cell').forEach(cell => {
+  const hit = () => {
+    cell.classList.add('hit');
+    touchHits.add(cell.dataset.touchCell);
+    updateTouchStatus();
+  };
+  cell.addEventListener('pointerdown', hit);
+  cell.addEventListener('touchstart', hit, { passive: true });
+});
 
 // ── Load all ─────────────────────────────────────────────────────────────────
 async function loadAll() {
