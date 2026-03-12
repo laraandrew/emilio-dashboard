@@ -308,33 +308,39 @@ setInterval(updateClock, 1000); updateClock();
 async function loadJSON(path){ const r = await fetch(path); return r.json(); }
 
 async function loadData(){
-  try {
-    const [w,t,c,g,s] = await Promise.all([
-      loadJSON('/state/weather.json'),
-      loadJSON('/state/todoist.json'),
-      loadJSON('/state/calendar.json'),
-      loadJSON('/state/gmail.json'),
-      loadJSON('/state/services.json')
-    ]);
+  const paths = [
+    '/state/weather.json',
+    '/state/todoist.json',
+    '/state/calendar.json',
+    '/state/gmail.json',
+    '/state/services.json'
+  ];
+  const [w,t,c,g,s] = await Promise.allSettled(paths.map(loadJSON));
 
-    // top bar
-    document.getElementById('weather-icon').textContent = WEATHER_ICONS[w.description] || '🌤️';
-    document.getElementById('weather-temp').textContent = Math.round((w.temp_c*9/5)+32) + '°F';
-    document.getElementById('weather-desc').textContent = w.description || '—';
-
-    state.tasks = t.tasks || [];
-    state.events = (c.events || []).slice().sort((a,b)=>new Date(a.start||'2100-01-01') - new Date(b.start||'2100-01-01'));
-    state.gmailCount = g.count || 0;
-    state.pi = s.pi || {};
-    state.services = s.services || {};
-
-    renderToday();
-    renderTasks('today');
-    renderCalendar();
-    renderSystem();
-  } catch (e) {
-    console.error(e);
+  if (w.status === 'fulfilled') {
+    const weather = w.value || {};
+    document.getElementById('weather-icon').textContent = WEATHER_ICONS[weather.description] || '🌤️';
+    document.getElementById('weather-temp').textContent = Math.round(((weather.temp_c || 0)*9/5)+32) + '°F';
+    document.getElementById('weather-desc').textContent = weather.description || 'Unavailable';
+  } else {
+    console.warn('weather.json unavailable', w.reason);
+    document.getElementById('weather-icon').textContent = '🌤️';
+    document.getElementById('weather-temp').textContent = '--°F';
+    document.getElementById('weather-desc').textContent = 'Unavailable';
   }
+
+  state.tasks = t.status === 'fulfilled' ? (t.value.tasks || []) : [];
+  state.events = c.status === 'fulfilled'
+    ? (c.value.events || []).slice().sort((a,b)=>new Date(a.start||'2100-01-01') - new Date(b.start||'2100-01-01'))
+    : [];
+  state.gmailCount = g.status === 'fulfilled' ? (g.value.count || 0) : 0;
+  state.pi = s.status === 'fulfilled' ? (s.value.pi || {}) : {};
+  state.services = s.status === 'fulfilled' ? (s.value.services || {}) : {};
+
+  renderToday();
+  renderTasks('today');
+  renderCalendar();
+  renderSystem();
 }
 
 function renderToday(){
@@ -349,7 +355,7 @@ function renderToday(){
     : `<div class="row-item"><div class="item-main">No tasks due</div></div>`;
 
   document.getElementById('today-inbox').innerHTML = `<div class="row-item"><div><div class="item-main">${state.gmailCount} unread</div><div class="item-sub">Inbox snapshot</div></div><button class="action-btn" id="mark-read-btn">Mark all read</button></div>`;
-  document.getElementById('mark-read-btn')?.addEventListener('click', ()=>fetch('/api/gmail/mark-all-read',{method:'POST'}).catch(()=>{}));
+  document.getElementById('mark-read-btn')?.addEventListener('click', ()=>triggerAction('/api/gmail/mark-all-read'));
 
   const pi = state.pi || {};
   const mem = pi.memory || {}; const disk = pi.disk || {};
@@ -418,8 +424,17 @@ Array.from(document.querySelectorAll('.filter-chip')).forEach(chip => {
   });
 });
 
-document.getElementById('add-task-btn').addEventListener('click', ()=>fetch('/api/todoist/add',{method:'POST'}).catch(()=>{}));
-document.getElementById('add-event-btn').addEventListener('click', ()=>fetch('/api/calendar/add',{method:'POST'}).catch(()=>{}));
+function triggerAction(path){
+  return fetch(path)
+    .then(r => {
+      if (!r.ok) throw new Error(`Action failed: ${r.status}`);
+      return r;
+    })
+    .catch(err => console.warn(path, err));
+}
+
+document.getElementById('add-task-btn').addEventListener('click', ()=>triggerAction('/api/todoist/add'));
+document.getElementById('add-event-btn').addEventListener('click', ()=>triggerAction('/api/calendar/add'));
 
 loadData();
 setInterval(loadData, 30000);
