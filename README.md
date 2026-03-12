@@ -35,6 +35,37 @@ This dashboard is optimized for at-a-glance daily operation and monitoring from 
 - Stale data detection using `meta.updated_at`
 - Touch test mode for cracked-screen diagnostics
 
+## Deployment
+
+### Current Pi deploy behavior
+- Nginx serves dashboard from `/var/lib/emilio/dashboard`
+- A system timer runs `emilio-dashboard-deploy.service` every ~5 minutes to pull and sync latest `main`
+- State files are refreshed by `emilio-state-refresh.timer`
+
+### GitHub Actions deploy on push
+This repo includes `.github/workflows/deploy-pi.yml`.
+
+On every push to `main`, it:
+1. Validates `index.html`
+2. SSHes into the Pi and starts `emilio-dashboard-deploy.service` (or fallback deploy script)
+3. Runs a localhost health check
+
+Required repo secrets:
+- `PI_HOST`
+- `PI_USER`
+- `PI_SSH_KEY`
+- optional: `PI_PORT`
+
+### Atomic release deploy helper
+`scripts/deploy-emilio-dashboard.sh` provides atomic symlink-based releases (`/opt/emilio-dashboard/releases` + `/opt/emilio-dashboard/current`) and rollback-friendly layout.
+
+Example:
+```bash
+sudo bash scripts/deploy-emilio-dashboard.sh origin/main
+```
+
+If nginx still points at `/var/lib/emilio/dashboard`, update its `root` to `/opt/emilio-dashboard/current` to fully enable atomic switchovers.
+
 ## Next Steps
 
 See [PLANS.md](PLANS.md) for roadmap and release hardening plan.
