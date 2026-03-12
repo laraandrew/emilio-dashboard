@@ -1,555 +1,428 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=800,height=480,initial-scale=1,user-scalable=no">
-<title>Emilio</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=800,height=480,initial-scale=1,user-scalable=no" />
+<title>Emilio Dashboard</title>
 <style>
 :root {
-  --bg:       #07070f;
-  --card:     #0f0f1e;
-  --border:   #1e1e38;
-  --accent:   #4f46e5;
-  --accent2:  #7c3aed;
-  --text:     #e2e8f0;
-  --muted:    #64748b;
-  --green:    #22c55e;
-  --red:      #ef4444;
-  --amber:    #f59e0b;
-  --blue:     #3b82f6;
+  --bg: #0b0f1a;
+  --card: #121a2a;
+  --border: #24324d;
+  --text: #f3f7ff;
+  --muted: #9eb0cf;
+  --accent: #4f7cff;
+  --ok: #2fd08c;
+  --warn: #f6b73c;
+  --danger: #ff5d73;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { width: 800px; height: 480px; overflow: hidden; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; }
-
-/* ── Header ── */
-#header {
-  display: flex; align-items: center; justify-content: space-between;
-  height: 44px; padding: 0 12px;
-  background: var(--card); border-bottom: 1px solid var(--border);
+html, body {
+  width: 800px;
+  height: 480px;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 16px;
 }
-#logo { font-size: 15px; font-weight: 700; letter-spacing: 3px; color: var(--accent); text-transform: uppercase; }
-#weather-strip { display: flex; align-items: center; gap: 8px; font-size: 13px; }
-#weather-icon { font-size: 18px; }
-#weather-temp { font-size: 18px; font-weight: 700; }
-#weather-desc { color: var(--muted); font-size: 11px; }
-#clock-block { text-align: right; }
-#clock { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 1px; }
-#date { font-size: 11px; color: var(--muted); }
+button, input { font: inherit; }
 
-/* ── Grid ── */
-#grid {
+#app { height: 100%; display: grid; grid-template-rows: 62px 1fr 68px; }
+
+/* Top bar */
+#topbar {
+  border-bottom: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 8px 14px;
+  gap: 12px;
+  background: #0d1422;
+}
+#brand { font-weight: 700; font-size: 18px; letter-spacing: .3px; }
+#weather-chip {
+  justify-self: center;
+  min-height: 44px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  border-radius: 999px;
+  padding: 6px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+}
+#weather-chip .meta { font-size: 14px; color: var(--muted); }
+#clock-wrap { justify-self: end; text-align: right; }
+#clock { font-size: 24px; font-weight: 700; line-height: 1; }
+#date { font-size: 14px; color: var(--muted); margin-top: 4px; }
+
+/* Screens */
+#screens { overflow: hidden; position: relative; }
+.screen {
+  position: absolute; inset: 0;
+  padding: 12px;
+  display: none;
+}
+.screen.active { display: block; }
+
+.card {
+  border: 1px solid var(--border);
+  background: var(--card);
+  border-radius: 14px;
+  padding: 12px;
+}
+.card h3 { font-size: 15px; color: var(--muted); font-weight: 600; margin-bottom: 10px; }
+
+/* Today */
+#today-grid {
+  height: 100%;
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
-  gap: 1px;
-  height: 396px; /* 480 - 44 header - 40 footer */
-  background: var(--border);
+  gap: 10px;
 }
-.panel { background: var(--card); padding: 10px 12px; overflow: hidden; display: flex; flex-direction: column; gap: 6px; }
-.panel-header { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
-.panel-title { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
-.badge { font-size: 10px; padding: 1px 6px; border-radius: 10px; background: var(--accent); color: white; font-weight: 700; }
-.badge.red { background: var(--red); }
-.badge.amber { background: var(--amber); color: #000; }
-.badge.green { background: var(--green); color: #000; }
-.panel-body { flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 4px; }
-
-/* ── Rows ── */
-.row { display: flex; align-items: flex-start; gap: 8px; padding: 5px 6px; border-radius: 6px; background: var(--bg); flex-shrink: 0; line-height: 1.3; }
-.row:hover { background: #1a1a2e; }
-.dot { width: 6px; height: 6px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
-.dot.red    { background: var(--red); }
-.dot.amber  { background: var(--amber); }
-.dot.green  { background: var(--green); }
-.dot.blue   { background: var(--blue); }
-.dot.purple { background: var(--accent2); }
-.dot.muted  { background: var(--muted); }
-.row-text { flex: 1; overflow: hidden; }
-.row-main { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.row-sub  { font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.row-time { font-size: 10px; color: var(--muted); flex-shrink: 0; white-space: nowrap; }
-
-/* ── Quick-add input ── */
-.quick-add { display: flex; gap: 6px; flex-shrink: 0; margin-top: 4px; }
-.quick-add input {
-  flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
-  color: var(--text); font-size: 12px; padding: 5px 8px; outline: none;
+.row-item {
+  min-height: 48px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  background: rgba(0,0,0,.14);
 }
-.quick-add input:focus { border-color: var(--accent); }
-.quick-add input::placeholder { color: var(--muted); }
-.btn {
-  background: var(--accent); border: none; border-radius: 6px; color: white;
-  font-size: 11px; font-weight: 700; padding: 5px 10px; cursor: pointer; white-space: nowrap;
+.row-item:last-child { margin-bottom: 0; }
+.item-main { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item-sub { color: var(--muted); font-size: 14px; margin-top: 3px; }
+.action-btn {
+  min-height: 46px;
+  min-width: 76px;
+  border: none;
+  border-radius: 12px;
+  padding: 0 14px;
+  background: var(--accent);
+  color: white;
+  font-weight: 700;
 }
-.btn:hover { background: var(--accent2); }
-.btn.sm { padding: 3px 8px; font-size: 10px; }
-.btn.ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); }
-.btn.ghost:hover { border-color: var(--accent); color: var(--text); }
 
-/* ── System panel ── */
-.bar-row { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.bar-label { font-size: 10px; color: var(--muted); width: 42px; flex-shrink: 0; }
-.bar-track { flex: 1; height: 5px; background: var(--bg); border-radius: 3px; overflow: hidden; }
-.bar-fill  { height: 100%; border-radius: 3px; background: var(--accent); transition: width .5s; }
-.bar-fill.warn  { background: var(--amber); }
-.bar-fill.danger { background: var(--red); }
-.bar-val { font-size: 10px; color: var(--muted); width: 34px; text-align: right; flex-shrink: 0; }
-.svc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
-.svc { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--muted); }
-.svc .dot { width: 5px; height: 5px; margin-top: 0; }
-
-/* ── Footer ── */
-#footer {
-  display: flex; align-items: center; justify-content: space-between;
-  height: 40px; padding: 0 14px;
-  background: var(--card); border-top: 1px solid var(--border);
+/* Tasks */
+.screen-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
 }
-#chess-strip { display: flex; gap: 16px; align-items: center; }
-.chess-stat { font-size: 11px; }
-.chess-label { color: var(--muted); margin-right: 3px; }
-.chess-val { font-weight: 700; }
-#footer-right { display: flex; gap: 10px; align-items: center; }
-#updated-label { font-size: 10px; color: var(--muted); }
-#refresh-btn { background: none; border: 1px solid var(--border); border-radius: 5px; color: var(--muted); font-size: 10px; padding: 3px 8px; cursor: pointer; }
-#refresh-btn:hover { border-color: var(--accent); color: var(--text); }
-
-/* ── Toast ── */
-#toast {
-  position: fixed; bottom: 50px; left: 50%; transform: translateX(-50%);
-  background: var(--accent); color: white; padding: 8px 18px; border-radius: 8px;
-  font-size: 12px; font-weight: 600; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999;
+.screen-title { font-size: 21px; font-weight: 700; }
+#task-filters { display: flex; gap: 8px; margin-bottom: 10px; }
+.filter-chip {
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
 }
-#toast.show { opacity: 1; }
-
-/* ── Empty state ── */
-.empty { font-size: 11px; color: var(--muted); text-align: center; padding: 12px 0; }
-
-/* ── Touch test overlay ── */
-#touch-test-btn { font-size: 10px; padding: 3px 8px; }
-.task-priority { font-size: 10px; color: var(--muted); margin-right: 6px; font-weight: 700; }
-.row.next-up { border: 1px solid rgba(34,197,94,0.45); background: rgba(34,197,94,0.08); }
-#touch-overlay {
-  position: fixed; inset: 0; z-index: 1200;
-  display: none; flex-direction: column; gap: 10px;
-  background: rgba(7,7,15,0.97); padding: 12px;
+.filter-chip.active { border-color: var(--accent); color: var(--accent); }
+#add-task-btn {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 12px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  font-weight: 700;
+  margin-bottom: 10px;
 }
-#touch-overlay.active { display: flex; }
-#touch-head { display:flex; justify-content:space-between; align-items:center; }
-#touch-head h3 { font-size: 14px; }
-#touch-close { background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; }
-#touch-grid { flex:1; display:grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); gap: 10px; }
-.touch-cell {
-  border: 1px dashed #3a3a5e; border-radius: 10px;
-  display:flex; align-items:center; justify-content:center;
-  color: var(--muted); font-size: 12px; user-select: none; touch-action: manipulation;
+.list { overflow: auto; max-height: 270px; padding-right: 2px; }
+.task-row {
+  min-height: 52px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  margin-bottom: 8px;
+  display: grid;
+  grid-template-columns: 34px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  background: rgba(0,0,0,.14);
 }
-.touch-cell.hit { border-color: var(--green); color: var(--text); background: rgba(34,197,94,0.12); }
-#touch-status { font-size: 12px; color: var(--muted); }
+.check {
+  width: 28px; height: 28px;
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+}
+.meta { color: var(--muted); font-size: 14px; }
+.pri { font-weight: 700; color: var(--warn); }
+
+/* Calendar */
+#calendar-list .row-item { min-height: 58px; }
+#add-event-btn { min-height: 48px; width: 100%; margin-top: 10px; }
+
+/* System */
+.meter-row {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  margin-bottom: 8px;
+}
+.meter-top { display: flex; justify-content: space-between; margin-bottom: 8px; }
+.meter-track { height: 12px; border-radius: 999px; background: #0c1220; overflow: hidden; }
+.meter-fill { height: 100%; background: var(--accent); }
+.service-row {
+  min-height: 46px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.pill {
+  min-height: 34px;
+  min-width: 76px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.pill.ok { background: rgba(47,208,140,.2); color: #8ff2c3; }
+.pill.bad { background: rgba(255,93,115,.2); color: #ff9dac; }
+
+/* Bottom nav */
+#nav {
+  border-top: 1px solid var(--border);
+  background: #0d1422;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 8px;
+}
+.nav-btn {
+  min-height: 52px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  font-weight: 700;
+}
+.nav-btn.active { border-color: var(--accent); color: var(--accent); }
 </style>
 </head>
 <body>
+<div id="app">
+  <header id="topbar">
+    <div id="brand">Emilio</div>
+    <div id="weather-chip"><span id="weather-icon">🌤️</span><div><div id="weather-temp">--°F</div><div class="meta" id="weather-desc">Loading</div></div></div>
+    <div id="clock-wrap"><div id="clock">--:--</div><div id="date">---</div></div>
+  </header>
 
-<!-- ── Header ── -->
-<div id="header">
-  <div id="logo">EMILIO</div>
-  <div id="weather-strip">
-    <span id="weather-icon">🌤</span>
-    <span id="weather-temp">—°F</span>
-    <div>
-      <div id="weather-desc">Loading...</div>
-      <div id="weather-wind" style="font-size:10px;color:var(--muted)"></div>
-    </div>
-  </div>
-  <div id="clock-block">
-    <div id="clock">--:--:--</div>
-    <div id="date">...</div>
-  </div>
-</div>
-
-<!-- ── Grid ── -->
-<div id="grid">
-
-  <!-- TASKS -->
-  <div class="panel">
-    <div class="panel-header">
-      <span class="panel-title">Tasks</span>
-      <span id="tasks-badge" class="badge">0</span>
-    </div>
-    <div class="panel-body" id="tasks-list">
-      <div class="empty">Loading...</div>
-    </div>
-    <div class="quick-add">
-      <input id="task-input" type="text" placeholder="Add a task..." maxlength="120">
-      <button class="btn" onclick="addTask()">Add</button>
-    </div>
-  </div>
-
-  <!-- EMAIL -->
-  <div class="panel">
-    <div class="panel-header">
-      <span class="panel-title">Inbox</span>
-      <div style="display:flex;gap:5px;align-items:center">
-        <span id="inbox-badge" class="badge">0</span>
-        <button class="btn sm ghost" onclick="markAllRead()">Mark read</button>
+  <main id="screens">
+    <section id="screen-today" class="screen active">
+      <div id="today-grid">
+        <div class="card">
+          <h3>Next up</h3>
+          <div id="today-nextup"></div>
+        </div>
+        <div class="card">
+          <h3>Top task</h3>
+          <div id="today-top-task"></div>
+        </div>
+        <div class="card">
+          <h3>Inbox status</h3>
+          <div id="today-inbox"></div>
+        </div>
+        <div class="card">
+          <h3>System health</h3>
+          <div id="today-system"></div>
+        </div>
       </div>
-    </div>
-    <div class="panel-body" id="inbox-list">
-      <div class="empty">Loading...</div>
-    </div>
-  </div>
+    </section>
 
-  <!-- CALENDAR -->
-  <div class="panel">
-    <div class="panel-header">
-      <span class="panel-title">Calendar</span>
-      <span id="cal-badge" class="badge">0</span>
-    </div>
-    <div class="panel-body" id="cal-list">
-      <div class="empty">Loading...</div>
-    </div>
-  </div>
-
-  <!-- SYSTEM -->
-  <div class="panel">
-    <div class="panel-header">
-      <span class="panel-title">System</span>
-      <span id="sys-status" class="badge green">OK</span>
-    </div>
-    <div class="panel-body" id="sys-body">
-      <div class="bar-row"><span class="bar-label">CPU</span><div class="bar-track"><div class="bar-fill" id="cpu-bar" style="width:0%"></div></div><span class="bar-val" id="cpu-val">—</span></div>
-      <div class="bar-row"><span class="bar-label">RAM</span><div class="bar-track"><div class="bar-fill" id="ram-bar" style="width:0%"></div></div><span class="bar-val" id="ram-val">—</span></div>
-      <div class="bar-row"><span class="bar-label">Disk</span><div class="bar-track"><div class="bar-fill" id="disk-bar" style="width:0%"></div></div><span class="bar-val" id="disk-val">—</span></div>
-      <div class="bar-row"><span class="bar-label">Temp</span><div class="bar-track"><div class="bar-fill" id="temp-bar" style="width:0%"></div></div><span class="bar-val" id="temp-val">—</span></div>
-      <div style="margin-top:4px;">
-        <div class="panel-title" style="margin-bottom:5px">Services</div>
-        <div class="svc-grid" id="svc-grid"></div>
+    <section id="screen-tasks" class="screen">
+      <div class="screen-header"><div class="screen-title">Tasks</div></div>
+      <div id="task-filters">
+        <button class="filter-chip active" data-filter="today">Today</button>
+        <button class="filter-chip" data-filter="week">This week</button>
+        <button class="filter-chip" data-filter="all">All</button>
       </div>
-    </div>
-  </div>
-</div>
+      <button id="add-task-btn">+ Add</button>
+      <div id="tasks-list" class="list"></div>
+    </section>
 
-<!-- ── Footer ── -->
-<div id="footer">
-  <div id="chess-strip">
-    <span style="font-size:14px">♟</span>
-    <span class="chess-stat"><span class="chess-label">Blitz</span><span class="chess-val" id="chess-blitz">—</span></span>
-    <span class="chess-stat"><span class="chess-label">Rapid</span><span class="chess-val" id="chess-rapid">—</span></span>
-    <span class="chess-stat"><span class="chess-label">Bullet</span><span class="chess-val" id="chess-bullet">—</span></span>
-  </div>
-  <div id="footer-right">
-    <button id="touch-test-btn" onclick="openTouchTest()">Touch test</button>
-    <span id="updated-label">Updated —</span>
-    <button id="refresh-btn" onclick="loadAll()">↻ Refresh</button>
-  </div>
-</div>
+    <section id="screen-calendar" class="screen">
+      <div class="screen-header"><div class="screen-title">Calendar</div></div>
+      <div id="calendar-list" class="list" style="max-height:290px"></div>
+      <button id="add-event-btn" class="action-btn">Add event</button>
+    </section>
 
-<div id="touch-overlay" aria-hidden="true">
-  <div id="touch-head">
-    <h3>Touch test mode</h3>
-    <button id="touch-close" onclick="closeTouchTest()">Exit test</button>
-  </div>
-  <div id="touch-grid">
-    <div class="touch-cell" data-touch-cell="1">Top left</div>
-    <div class="touch-cell" data-touch-cell="2">Top center</div>
-    <div class="touch-cell" data-touch-cell="3">Top right</div>
-    <div class="touch-cell" data-touch-cell="4">Bottom left</div>
-    <div class="touch-cell" data-touch-cell="5">Bottom center</div>
-    <div class="touch-cell" data-touch-cell="6">Bottom right</div>
-  </div>
-  <div id="touch-status">Touch points confirmed: 0/6</div>
-</div>
+    <section id="screen-system" class="screen">
+      <div class="screen-header"><div class="screen-title">System</div></div>
+      <div id="system-meters"></div>
+      <div id="services-list"></div>
+    </section>
+  </main>
 
-<div id="toast"></div>
+  <nav id="nav">
+    <button class="nav-btn active" data-screen="today">Today</button>
+    <button class="nav-btn" data-screen="tasks">Tasks</button>
+    <button class="nav-btn" data-screen="calendar">Calendar</button>
+    <button class="nav-btn" data-screen="system">System</button>
+  </nav>
+</div>
 
 <script>
-// ── Helpers ──────────────────────────────────────────────────────────────────
-function toast(msg, ms=2500) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), ms);
-}
-
-function apiCall(path, body) {
-  // API layer not yet deployed — show toast
-  toast('⚡ Action sent to Emilio');
-  return fetch('/api/' + path, {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify(body)
-  }).catch(() => toast('API not yet available — action queued'));
-}
-
-function tempF(c) { return Math.round(c * 9/5 + 32); }
-function mphFromMs(ms) { return Math.round(ms * 2.237); }
-
-function fmtTime(iso) {
-  if (!iso) return '';
-  const d = new Date(iso);
-  return d.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit', hour12:true});
-}
-
-function fmtDate(iso) {
-  if (!iso) return '';
-  const d = new Date(iso);
-  return d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
-}
-
-function dotColor(priority) {
-  if (priority === 4) return 'red';
-  if (priority === 3) return 'amber';
-  if (priority === 2) return 'blue';
-  return 'muted';
-}
-
-function truncate(s, n) { return s && s.length > n ? s.slice(0, n) + '…' : (s || ''); }
-
-function setBar(id, pct) {
-  const el = document.getElementById(id);
-  el.style.width = Math.min(pct, 100) + '%';
-  el.className = 'bar-fill' + (pct > 85 ? ' danger' : pct > 65 ? ' warn' : '');
-}
-
-// ── Clock ────────────────────────────────────────────────────────────────────
-function updateClock() {
-  const now = new Date();
-  document.getElementById('clock').textContent =
-    now.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false});
-  document.getElementById('date').textContent =
-    now.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric', year:'2-digit'});
-}
-setInterval(updateClock, 1000);
-updateClock();
-
-// ── Weather ──────────────────────────────────────────────────────────────────
 const WEATHER_ICONS = {
-  'clear sky': '☀️', 'few clouds': '🌤', 'scattered clouds': '⛅',
-  'broken clouds': '🌥', 'overcast clouds': '☁️',
-  'light rain': '🌦', 'moderate rain': '🌧', 'heavy intensity rain': '⛈',
-  'thunderstorm': '⛈', 'snow': '❄️', 'mist': '🌫', 'fog': '🌫', 'haze': '🌫'
+  'clear sky':'☀️','few clouds':'🌤️','scattered clouds':'⛅','broken clouds':'🌥️','overcast clouds':'☁️','mist':'🌫️','fog':'🌫️','light rain':'🌦️','moderate rain':'🌧️','thunderstorm':'⛈️'
 };
+const SERVICE_LABELS = {
+  'emilio-openclaw': 'OpenClaw',
+  'emilio-google-broker': 'Google',
+  'emilio-todoist-broker': 'Todoist',
+  'emilio-github-broker': 'GitHub',
+  'emilio-weather-broker': 'Weather',
+  'emilio-sentry-broker': 'Sentry',
+  'emilio-lichess-broker': 'Lichess'
+};
+const state = { tasks: [], events: [], gmailCount: 0, pi: null, services: {} };
 
-async function loadWeather() {
-  try {
-    const d = await fetch('/state/weather.json').then(r => r.json());
-    const icon = WEATHER_ICONS[d.description] || '🌤';
-    document.getElementById('weather-icon').textContent = icon;
-    document.getElementById('weather-temp').textContent = tempF(d.temp_c) + '°F';
-    document.getElementById('weather-desc').textContent = d.description;
-    document.getElementById('weather-wind').textContent =
-      d.wind_speed_ms ? `${mphFromMs(d.wind_speed_ms)} mph ${d.wind_dir || ''}`.trim() : '';
-  } catch(e) {}
+function esc(s=''){ return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m])); }
+function fmtTime(iso){ if(!iso) return 'All day'; return new Date(iso).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}); }
+function nowDayKey(){ return new Date().toISOString().slice(0,10); }
+function within7(d){ if(!d) return false; const today = new Date(nowDayKey()); const target = new Date(d); return (target-today)/(1000*60*60*24) <= 7; }
+
+function updateClock(){
+  const n = new Date();
+  document.getElementById('clock').textContent = n.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
+  document.getElementById('date').textContent = n.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
 }
+setInterval(updateClock, 1000); updateClock();
 
-// ── Tasks ────────────────────────────────────────────────────────────────────
-async function loadTasks() {
+async function loadJSON(path){ const r = await fetch(path); return r.json(); }
+
+async function loadData(){
   try {
-    const d = await fetch('/state/todoist.json').then(r => r.json());
-    const tasks = (d.tasks || []).slice().sort((a,b) => (b.priority || 1) - (a.priority || 1)).slice(0, 6);
-    const badge = document.getElementById('tasks-badge');
-    badge.textContent = d.count || tasks.length;
-    const overdue = tasks.filter(t => t.due_date && t.due_date < new Date().toISOString().slice(0,10)).length;
-    badge.className = 'badge' + (overdue > 0 ? ' red' : '');
+    const [w,t,c,g,s] = await Promise.all([
+      loadJSON('/state/weather.json'),
+      loadJSON('/state/todoist.json'),
+      loadJSON('/state/calendar.json'),
+      loadJSON('/state/gmail.json'),
+      loadJSON('/state/services.json')
+    ]);
 
-    const el = document.getElementById('tasks-list');
-    if (!tasks.length) { el.innerHTML = '<div class="empty">All clear ✓</div>'; return; }
-    el.innerHTML = tasks.map(t => {
-      const p = t.priority || 1;
-      const due = t.due_date && t.due_date < new Date().toISOString().slice(0,10)
-        ? `<span style="color:var(--red)">${t.due_date}</span>`
-        : t.due_date ? `<span>${t.due_date}</span>` : '';
-      return `<div class="row">
-        <div class="dot ${dotColor(p)}"></div>
-        <div class="row-text">
-          <div class="row-main"><span class="task-priority">P${p}</span>${truncate(t.content, 38)}</div>
-          ${due ? `<div class="row-sub">${due}</div>` : ''}
-        </div>
-      </div>`;
-    }).join('');
-  } catch(e) {}
-}
+    // top bar
+    document.getElementById('weather-icon').textContent = WEATHER_ICONS[w.description] || '🌤️';
+    document.getElementById('weather-temp').textContent = Math.round((w.temp_c*9/5)+32) + '°F';
+    document.getElementById('weather-desc').textContent = w.description || '—';
 
-async function addTask() {
-  const input = document.getElementById('task-input');
-  const content = input.value.trim();
-  if (!content) return;
-  input.value = '';
-  toast('Adding task…');
-  // API call (will gracefully fail if API not yet deployed)
-  try {
-    await fetch('/api/todoist/add', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({content})
-    });
-    toast('✓ Task added');
-  } catch {
-    toast('✓ Task queued for Emilio');
+    state.tasks = t.tasks || [];
+    state.events = (c.events || []).slice().sort((a,b)=>new Date(a.start||'2100-01-01') - new Date(b.start||'2100-01-01'));
+    state.gmailCount = g.count || 0;
+    state.pi = s.pi || {};
+    state.services = s.services || {};
+
+    renderToday();
+    renderTasks('today');
+    renderCalendar();
+    renderSystem();
+  } catch (e) {
+    console.error(e);
   }
 }
 
-document.getElementById('task-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') addTask();
+function renderToday(){
+  const next = state.events.slice(0,2);
+  document.getElementById('today-nextup').innerHTML = next.length ? next.map(ev =>
+    `<div class="row-item"><div><div class="item-main">${esc(ev.summary || 'Event')}</div><div class="item-sub">${fmtTime(ev.start)}${ev.location?` · ${esc(ev.location)}`:''}</div></div></div>`
+  ).join('') : `<div class="row-item"><div class="item-main">No upcoming events</div></div>`;
+
+  const topTask = state.tasks.slice().sort((a,b)=>(b.priority||1)-(a.priority||1))[0];
+  document.getElementById('today-top-task').innerHTML = topTask
+    ? `<div class="row-item"><div><div class="item-main">${esc(topTask.content)}</div><div class="item-sub">P${topTask.priority||1}${topTask.due_date?` · ${esc(topTask.due_date)}`:''}</div></div><button class="action-btn">Start</button></div>`
+    : `<div class="row-item"><div class="item-main">No tasks due</div></div>`;
+
+  document.getElementById('today-inbox').innerHTML = `<div class="row-item"><div><div class="item-main">${state.gmailCount} unread</div><div class="item-sub">Inbox snapshot</div></div><button class="action-btn" id="mark-read-btn">Mark all read</button></div>`;
+  document.getElementById('mark-read-btn')?.addEventListener('click', ()=>fetch('/api/gmail/mark-all-read',{method:'POST'}).catch(()=>{}));
+
+  const pi = state.pi || {};
+  const mem = pi.memory || {}; const disk = pi.disk || {};
+  const ramPct = mem.total_mb ? Math.round((mem.used_mb/mem.total_mb)*100) : 0;
+  document.getElementById('today-system').innerHTML =
+    `<div class="row-item"><div><div class="item-main">CPU ${Number(pi.load_avg?.['1m']||0).toFixed(2)} · RAM ${ramPct}%</div><div class="item-sub">Temp ${pi.cpu_temp_c||'--'}°C · Disk ${disk.pct||'--'}</div></div></div>`;
+}
+
+function renderTasks(filter='today'){
+  const today = nowDayKey();
+  let tasks = state.tasks.slice();
+  if (filter === 'today') tasks = tasks.filter(t => !t.due_date || t.due_date <= today);
+  if (filter === 'week') tasks = tasks.filter(t => !t.due_date || within7(t.due_date));
+  tasks.sort((a,b)=>(b.priority||1)-(a.priority||1));
+
+  document.getElementById('tasks-list').innerHTML = tasks.length ? tasks.map(t =>
+    `<div class="task-row"><div class="check"></div><div><div class="item-main">${esc(t.content)}</div><div class="meta">${t.due_date?esc(t.due_date):'No due date'} · <span class="pri">P${t.priority||1}</span></div></div><div>${t.is_recurring?'🔁':''}</div></div>`
+  ).join('') : `<div class="row-item"><div class="item-main">No tasks in this filter</div></div>`;
+}
+
+function renderCalendar(){
+  const evs = state.events.slice(0,8);
+  document.getElementById('calendar-list').innerHTML = evs.length ? evs.map(ev =>
+    `<div class="row-item"><div><div class="item-main">${esc(ev.summary || 'Event')}</div><div class="item-sub">${fmtTime(ev.start)}${ev.location?` · ${esc(ev.location)}`:''}</div></div></div>`
+  ).join('') : `<div class="row-item"><div class="item-main">No upcoming events</div></div>`;
+}
+
+function meter(name,pct,raw){
+  const cl = pct > 85 ? 'var(--danger)' : pct > 65 ? 'var(--warn)' : 'var(--accent)';
+  return `<div class="meter-row"><div class="meter-top"><strong>${name}</strong><span>${raw}</span></div><div class="meter-track"><div class="meter-fill" style="width:${Math.min(100,pct)}%;background:${cl}"></div></div></div>`;
+}
+
+function renderSystem(){
+  const pi = state.pi || {}; const mem = pi.memory || {}; const disk = pi.disk || {};
+  const cpu = Math.min(100, Math.round((Number(pi.load_avg?.['1m']||0)/4)*100));
+  const ram = mem.total_mb ? Math.round((mem.used_mb/mem.total_mb)*100) : 0;
+  const diskPct = parseInt(disk.pct || '0') || 0;
+  const temp = Math.round(((pi.cpu_temp_c||0)/85)*100);
+  document.getElementById('system-meters').innerHTML =
+    meter('CPU', cpu, `${cpu}%`) +
+    meter('RAM', ram, `${ram}%`) +
+    meter('Disk', diskPct, disk.pct || '--') +
+    meter('Temp', temp, `${pi.cpu_temp_c||'--'}°C`);
+
+  document.getElementById('services-list').innerHTML = Object.entries(SERVICE_LABELS).map(([k,v])=>{
+    const ok = state.services[k] === 'active';
+    return `<div class="service-row"><strong>${v}</strong><span class="pill ${ok?'ok':'bad'}">${ok?'Active':'Down'}</span></div>`;
+  }).join('');
+}
+
+// nav
+Array.from(document.querySelectorAll('.nav-btn')).forEach(btn => {
+  btn.addEventListener('click', () => {
+    const target = btn.dataset.screen;
+    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById('screen-' + target).classList.add('active');
+  });
+});
+Array.from(document.querySelectorAll('.filter-chip')).forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    renderTasks(chip.dataset.filter);
+  });
 });
 
-// ── Email ────────────────────────────────────────────────────────────────────
-async function loadInbox() {
-  try {
-    const d = await fetch('/state/gmail.json').then(r => r.json());
-    const msgs = (d.messages || []).slice(0, 5);
-    const count = d.count || msgs.length;
-    const badge = document.getElementById('inbox-badge');
-    badge.textContent = count;
-    badge.className = 'badge' + (count > 10 ? ' red' : count > 5 ? ' amber' : '');
+document.getElementById('add-task-btn').addEventListener('click', ()=>fetch('/api/todoist/add',{method:'POST'}).catch(()=>{}));
+document.getElementById('add-event-btn').addEventListener('click', ()=>fetch('/api/calendar/add',{method:'POST'}).catch(()=>{}));
 
-    const el = document.getElementById('inbox-list');
-    if (!msgs.length) { el.innerHTML = '<div class="empty">Inbox zero ✓</div>'; return; }
-    el.innerHTML = msgs.map(m => {
-      const from = m.from ? m.from.replace(/<[^>]+>/, '').replace(/"/g, '').trim() : '—';
-      return `<div class="row">
-        <div class="dot blue"></div>
-        <div class="row-text">
-          <div class="row-main">${truncate(m.subject, 36)}</div>
-          <div class="row-sub">${truncate(from, 30)}</div>
-        </div>
-      </div>`;
-    }).join('');
-  } catch(e) {}
-}
-
-async function markAllRead() {
-  toast('Marking all read…');
-  try {
-    await fetch('/api/gmail/mark-all-read', {method:'POST'});
-    toast('✓ Done');
-  } catch { toast('✓ Queued for Emilio'); }
-}
-
-// ── Calendar ─────────────────────────────────────────────────────────────────
-async function loadCalendar() {
-  try {
-    const d = await fetch('/state/calendar.json').then(r => r.json());
-    const events = (d.events || []).slice().sort((a, b) => {
-      const aTs = a.start ? new Date(a.start).getTime() : Number.MAX_SAFE_INTEGER;
-      const bTs = b.start ? new Date(b.start).getTime() : Number.MAX_SAFE_INTEGER;
-      return aTs - bTs;
-    }).slice(0, 4);
-    document.getElementById('cal-badge').textContent = d.count || events.length;
-
-    const now = Date.now();
-    const nextTimedIdx = events.findIndex(ev => ev.start && ev.start.includes('T') && new Date(ev.start).getTime() >= now);
-
-    const el = document.getElementById('cal-list');
-    if (!events.length) { el.innerHTML = '<div class="empty">Nothing today</div>'; return; }
-    el.innerHTML = events.map((ev, idx) => {
-      const isAllDay = ev.start && !ev.start.includes('T');
-      const timeStr = isAllDay ? 'All day' : fmtTime(ev.start);
-      const loc = ev.location ? `· ${truncate(ev.location, 20)}` : '';
-      const rowClass = idx === nextTimedIdx ? 'row next-up' : 'row';
-      return `<div class="${rowClass}">
-        <div class="dot purple"></div>
-        <div class="row-text">
-          <div class="row-main">${truncate(ev.summary, 36)}</div>
-          <div class="row-sub">${timeStr}${loc}${idx === nextTimedIdx ? ' · NEXT' : ''}</div>
-        </div>
-      </div>`;
-    }).join('');
-  } catch(e) {}
-}
-
-// ── System ───────────────────────────────────────────────────────────────────
-async function loadSystem() {
-  try {
-    const d = await fetch('/state/services.json').then(r => r.json());
-    const pi = d.pi || {};
-    const svcs = d.services || {};
-
-    // CPU — approximate from load avg vs cores (Pi 4 = 4 cores)
-    const load1 = parseFloat((pi.load_avg || {})['1m'] || 0);
-    const cpuPct = Math.min(Math.round(load1 / 4 * 100), 100);
-    setBar('cpu-bar', cpuPct);
-    document.getElementById('cpu-val').textContent = `${cpuPct}%`;
-
-    // RAM
-    const mem = pi.memory || {};
-    const ramPct = mem.total_mb ? Math.round(mem.used_mb / mem.total_mb * 100) : 0;
-    setBar('ram-bar', ramPct);
-    document.getElementById('ram-val').textContent = `${ramPct}%`;
-
-    // Disk
-    const disk = pi.disk || {};
-    const diskPct = parseInt(disk.pct || '0') || 0;
-    setBar('disk-bar', diskPct);
-    document.getElementById('disk-val').textContent = disk.pct || '—';
-
-    // Temp
-    const tempC = pi.cpu_temp_c || 0;
-    const tempPct = Math.min(Math.round((tempC / 85) * 100), 100);
-    setBar('temp-bar', tempPct);
-    document.getElementById('temp-val').textContent = `${tempC}°C`;
-
-    // Services
-    const svcNames = {
-      'emilio-openclaw': 'AI', 'emilio-google-broker': 'Google',
-      'emilio-todoist-broker': 'Todoist', 'emilio-github-broker': 'GitHub',
-      'emilio-weather-broker': 'Weather', 'emilio-sentry-broker': 'Sentry',
-      'emilio-lichess-broker': 'Lichess'
-    };
-    const allOk = Object.values(svcs).every(v => v === 'active');
-    document.getElementById('sys-status').textContent = allOk ? 'OK' : 'ALERT';
-    document.getElementById('sys-status').className = 'badge ' + (allOk ? 'green' : 'red');
-
-    document.getElementById('svc-grid').innerHTML = Object.entries(svcNames).map(([k, label]) => {
-      const ok = svcs[k] === 'active';
-      return `<div class="svc"><div class="dot ${ok ? 'green' : 'red'}"></div>${label}</div>`;
-    }).join('');
-  } catch(e) {}
-}
-
-// ── Chess ────────────────────────────────────────────────────────────────────
-async function loadChess() {
-  try {
-    const d = await fetch('/state/lichess.json').then(r => r.json());
-    const r = d.ratings || {};
-    document.getElementById('chess-blitz').textContent  = r.blitz  || '—';
-    document.getElementById('chess-rapid').textContent  = r.rapid  || '—';
-    document.getElementById('chess-bullet').textContent = r.bullet || '—';
-  } catch(e) {}
-}
-
-// ── Touch test ───────────────────────────────────────────────────────────────
-const touchHits = new Set();
-function updateTouchStatus() {
-  const total = document.querySelectorAll('.touch-cell').length;
-  document.getElementById('touch-status').textContent = `Touch points confirmed: ${touchHits.size}/${total}`;
-}
-function openTouchTest() {
-  touchHits.clear();
-  document.querySelectorAll('.touch-cell').forEach(c => c.classList.remove('hit'));
-  document.getElementById('touch-overlay').classList.add('active');
-  updateTouchStatus();
-}
-function closeTouchTest() {
-  document.getElementById('touch-overlay').classList.remove('active');
-}
-document.querySelectorAll('.touch-cell').forEach(cell => {
-  const hit = () => {
-    cell.classList.add('hit');
-    touchHits.add(cell.dataset.touchCell);
-    updateTouchStatus();
-  };
-  cell.addEventListener('pointerdown', hit);
-  cell.addEventListener('touchstart', hit, { passive: true });
-});
-
-// ── Load all ─────────────────────────────────────────────────────────────────
-async function loadAll() {
-  await Promise.all([loadWeather(), loadTasks(), loadInbox(), loadCalendar(), loadSystem(), loadChess()]);
-  document.getElementById('updated-label').textContent =
-    'Updated ' + new Date().toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'});
-}
-
-loadAll();
-setInterval(loadAll, 30000);
+loadData();
+setInterval(loadData, 30000);
 </script>
 </body>
 </html>
