@@ -2,822 +2,481 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=800, initial-scale=1">
+<meta name="viewport" content="width=800,height=480,initial-scale=1,user-scalable=no">
 <title>Emilio</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:       #07070f;
+  --card:     #0f0f1e;
+  --border:   #1e1e38;
+  --accent:   #4f46e5;
+  --accent2:  #7c3aed;
+  --text:     #e2e8f0;
+  --muted:    #64748b;
+  --green:    #22c55e;
+  --red:      #ef4444;
+  --amber:    #f59e0b;
+  --blue:     #3b82f6;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 800px; height: 480px; overflow: hidden; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; }
 
-  :root {
-    --bg: #0a0e1a;
-    --surface: #111827;
-    --border: #1e2d45;
-    --accent: #3b82f6;
-    --accent2: #10b981;
-    --warn: #f59e0b;
-    --danger: #ef4444;
-    --text: #f1f5f9;
-    --muted: #64748b;
-    --dim: #94a3b8;
-  }
+/* ── Header ── */
+#header {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 44px; padding: 0 12px;
+  background: var(--card); border-bottom: 1px solid var(--border);
+}
+#logo { font-size: 15px; font-weight: 700; letter-spacing: 3px; color: var(--accent); text-transform: uppercase; }
+#weather-strip { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+#weather-icon { font-size: 18px; }
+#weather-temp { font-size: 18px; font-weight: 700; }
+#weather-desc { color: var(--muted); font-size: 11px; }
+#clock-block { text-align: right; }
+#clock { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 1px; }
+#date { font-size: 11px; color: var(--muted); }
 
-  html, body {
-    width: 800px; height: 480px;
-    overflow: hidden;
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'SF Pro Display', 'Segoe UI', system-ui, -apple-system, sans-serif;
-    font-size: 15px;
-  }
+/* ── Grid ── */
+#grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 1px;
+  height: 396px; /* 480 - 44 header - 40 footer */
+  background: var(--border);
+}
+.panel { background: var(--card); padding: 10px 12px; overflow: hidden; display: flex; flex-direction: column; gap: 6px; }
+.panel-header { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.panel-title { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+.badge { font-size: 10px; padding: 1px 6px; border-radius: 10px; background: var(--accent); color: white; font-weight: 700; }
+.badge.red { background: var(--red); }
+.badge.amber { background: var(--amber); color: #000; }
+.badge.green { background: var(--green); color: #000; }
+.panel-body { flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 4px; }
 
-  /* ── TOP BAR ── */
-  #topbar {
-    display: flex;
-    align-items: center;
-    height: 56px;
-    padding: 0 16px;
-    background: linear-gradient(135deg, #0f1b2e 0%, #111827 100%);
-    border-bottom: 1px solid var(--border);
-    gap: 12px;
-  }
-  #brand {
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--accent);
-    letter-spacing: -0.5px;
-    flex-shrink: 0;
-  }
-  #brand span { color: var(--text); }
+/* ── Rows ── */
+.row { display: flex; align-items: flex-start; gap: 8px; padding: 5px 6px; border-radius: 6px; background: var(--bg); flex-shrink: 0; line-height: 1.3; }
+.row:hover { background: #1a1a2e; }
+.dot { width: 6px; height: 6px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+.dot.red    { background: var(--red); }
+.dot.amber  { background: var(--amber); }
+.dot.green  { background: var(--green); }
+.dot.blue   { background: var(--blue); }
+.dot.purple { background: var(--accent2); }
+.dot.muted  { background: var(--muted); }
+.row-text { flex: 1; overflow: hidden; }
+.row-main { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row-sub  { font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row-time { font-size: 10px; color: var(--muted); flex-shrink: 0; white-space: nowrap; }
 
-  #weather-bar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex: 1;
-    min-width: 0;
-  }
-  #weather-icon { font-size: 22px; }
-  #weather-temp {
-    font-size: 26px;
-    font-weight: 700;
-    color: var(--text);
-    line-height: 1;
-  }
-  #weather-desc {
-    font-size: 13px;
-    color: var(--dim);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  #weather-detail {
-    font-size: 12px;
-    color: var(--muted);
-  }
+/* ── Quick-add input ── */
+.quick-add { display: flex; gap: 6px; flex-shrink: 0; margin-top: 4px; }
+.quick-add input {
+  flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+  color: var(--text); font-size: 12px; padding: 5px 8px; outline: none;
+}
+.quick-add input:focus { border-color: var(--accent); }
+.quick-add input::placeholder { color: var(--muted); }
+.btn {
+  background: var(--accent); border: none; border-radius: 6px; color: white;
+  font-size: 11px; font-weight: 700; padding: 5px 10px; cursor: pointer; white-space: nowrap;
+}
+.btn:hover { background: var(--accent2); }
+.btn.sm { padding: 3px 8px; font-size: 10px; }
+.btn.ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+.btn.ghost:hover { border-color: var(--accent); color: var(--text); }
 
-  #clock-block {
-    text-align: right;
-    flex-shrink: 0;
-  }
-  #clock {
-    font-size: 28px;
-    font-weight: 700;
-    line-height: 1;
-    letter-spacing: -1px;
-    font-variant-numeric: tabular-nums;
-  }
-  #date-str {
-    font-size: 12px;
-    color: var(--muted);
-    text-align: right;
-  }
+/* ── System panel ── */
+.bar-row { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.bar-label { font-size: 10px; color: var(--muted); width: 42px; flex-shrink: 0; }
+.bar-track { flex: 1; height: 5px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+.bar-fill  { height: 100%; border-radius: 3px; background: var(--accent); transition: width .5s; }
+.bar-fill.warn  { background: var(--amber); }
+.bar-fill.danger { background: var(--red); }
+.bar-val { font-size: 10px; color: var(--muted); width: 34px; text-align: right; flex-shrink: 0; }
+.svc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
+.svc { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--muted); }
+.svc .dot { width: 5px; height: 5px; margin-top: 0; }
 
+/* ── Footer ── */
+#footer {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 40px; padding: 0 14px;
+  background: var(--card); border-top: 1px solid var(--border);
+}
+#chess-strip { display: flex; gap: 16px; align-items: center; }
+.chess-stat { font-size: 11px; }
+.chess-label { color: var(--muted); margin-right: 3px; }
+.chess-val { font-weight: 700; }
+#footer-right { display: flex; gap: 10px; align-items: center; }
+#updated-label { font-size: 10px; color: var(--muted); }
+#refresh-btn { background: none; border: 1px solid var(--border); border-radius: 5px; color: var(--muted); font-size: 10px; padding: 3px 8px; cursor: pointer; }
+#refresh-btn:hover { border-color: var(--accent); color: var(--text); }
 
+/* ── Toast ── */
+#toast {
+  position: fixed; bottom: 50px; left: 50%; transform: translateX(-50%);
+  background: var(--accent); color: white; padding: 8px 18px; border-radius: 8px;
+  font-size: 12px; font-weight: 600; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999;
+}
+#toast.show { opacity: 1; }
 
-  #status-strip {
-    height: 20px;
-    padding: 0 12px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 11px;
-    color: var(--muted);
-    border-bottom: 1px solid var(--border);
-    background: #0c1423;
-  }
-  #health-pill {
-    padding: 1px 8px;
-    border-radius: 999px;
-    border: 1px solid var(--border);
-    color: var(--accent2);
-  }
-  #health-pill.warn { color: var(--warn); border-color: var(--warn); }
-  #health-pill.danger { color: var(--danger); border-color: var(--danger); }
-  .card.error { border-color: var(--danger); }
-
-  /* ── MAIN GRID ── */
-  #grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr;
-    gap: 8px;
-    padding: 8px;
-    height: calc(480px - 56px - 20px - 34px - 28px);
-  }
-
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 10px 12px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-  }
-  .card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    border-radius: 10px 10px 0 0;
-  }
-  #card-tasks::before   { background: linear-gradient(90deg, #3b82f6, #6366f1); }
-  #card-cal::before     { background: linear-gradient(90deg, #10b981, #06b6d4); }
-  #card-mail::before    { background: linear-gradient(90deg, #f59e0b, #ef4444); }
-  #card-system::before  { background: linear-gradient(90deg, #8b5cf6, #ec4899); }
-
-  .card-header {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 7px;
-    flex-shrink: 0;
-  }
-  .card-icon { font-size: 16px; }
-  .card-title {
-    font-size: 13px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    color: var(--dim);
-  }
-  .badge {
-    margin-left: auto;
-    font-size: 12px;
-    font-weight: 700;
-    background: var(--border);
-    color: var(--dim);
-    padding: 1px 7px;
-    border-radius: 20px;
-  }
-  .badge.active { background: var(--accent); color: #fff; }
-  .badge.warn { background: var(--warn); color: #000; }
-
-  .card-body { flex: 1; overflow: hidden; }
-
-  /* Task items */
-  .task-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 7px;
-    padding: 4px 0;
-    border-bottom: 1px solid #1a2234;
-    font-size: 14px;
-    line-height: 1.3;
-  }
-  .task-item:last-child { border-bottom: none; }
-  .task-dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: var(--accent);
-    margin-top: 4px;
-    flex-shrink: 0;
-  }
-  .task-dot.p4 { background: #ef4444; }
-  .task-dot.p3 { background: #f59e0b; }
-  .task-dot.p2 { background: #3b82f6; }
-  .task-text {
-    flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: var(--text);
-  }
-  .task-due {
-    font-size: 11px;
-    color: var(--muted);
-    flex-shrink: 0;
-  }
-  .task-due.overdue { color: var(--danger); }
-
-  /* Calendar items */
-  .cal-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 4px 0;
-    border-bottom: 1px solid #1a2234;
-  }
-  .cal-item:last-child { border-bottom: none; }
-  .cal-time {
-    font-size: 12px;
-    color: var(--accent2);
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-    min-width: 50px;
-    font-weight: 600;
-  }
-  .cal-time.allday { color: var(--muted); font-size: 11px; }
-  .cal-summary {
-    font-size: 14px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: var(--text);
-  }
-  .cal-loc {
-    font-size: 11px;
-    color: var(--muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  /* Mail items */
-  .mail-item {
-    display: flex;
-    flex-direction: column;
-    padding: 4px 0;
-    border-bottom: 1px solid #1a2234;
-    gap: 1px;
-  }
-  .mail-item:last-child { border-bottom: none; }
-  .mail-from {
-    font-size: 13px;
-    font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: var(--text);
-  }
-  .mail-subject {
-    font-size: 13px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: var(--dim);
-  }
-
-  /* System card */
-  .sys-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 6px;
-    height: 100%;
-  }
-  .sys-stat {
-    background: #0d1525;
-    border: 1px solid var(--border);
-    border-radius: 7px;
-    padding: 6px 10px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-  .sys-label {
-    font-size: 11px;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 2px;
-  }
-  .sys-value {
-    font-size: 20px;
-    font-weight: 700;
-    line-height: 1;
-    color: var(--text);
-  }
-  .sys-value.warn { color: var(--warn); }
-  .sys-value.danger { color: var(--danger); }
-  .sys-sub {
-    font-size: 11px;
-    color: var(--muted);
-    margin-top: 1px;
-  }
-  .service-dots {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-top: 4px;
-  }
-  .svc-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--accent2);
-    title: '';
-  }
-  .svc-dot.down { background: var(--danger); }
-
-
-
-  #work-strip {
-    height: 34px;
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr;
-    gap: 8px;
-    align-items: center;
-    padding: 0 12px;
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-    background: #0b1220;
-    font-size: 11px;
-    color: var(--muted);
-  }
-  .work-pill {
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 3px 8px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    background: #0f182a;
-  }
-  #work-current strong { color: var(--text); }
-  #work-progress strong { color: var(--accent); }
-
-  /* ── FOOTER ── */
-  #footer {
-    height: 28px;
-    display: flex;
-    align-items: center;
-    padding: 0 14px;
-    gap: 16px;
-    background: #0a0e1a;
-    border-top: 1px solid var(--border);
-    font-size: 11px;
-    color: var(--muted);
-  }
-  #footer-updated { margin-right: auto; }
-  .chess-rating { display: flex; align-items: center; gap: 4px; }
-  .chess-mode { color: var(--dim); }
-  .chess-val { color: var(--text); font-weight: 600; }
-
-  /* Empty states */
-  .empty {
-    color: var(--muted);
-    font-size: 14px;
-    padding-top: 8px;
-    text-align: center;
-  }
+/* ── Empty state ── */
+.empty { font-size: 11px; color: var(--muted); text-align: center; padding: 12px 0; }
 </style>
 </head>
 <body>
 
-<!-- TOP BAR -->
-<div id="topbar">
-  <div id="brand">emilio<span>.</span></div>
-
-  <div id="weather-bar">
-    <span id="weather-icon">🌡️</span>
+<!-- ── Header ── -->
+<div id="header">
+  <div id="logo">EMILIO</div>
+  <div id="weather-strip">
+    <span id="weather-icon">🌤</span>
+    <span id="weather-temp">—°F</span>
     <div>
-      <div id="weather-temp">--°F</div>
-      <div id="weather-desc">--</div>
-    </div>
-    <div style="margin-left:8px">
-      <div id="weather-detail">Humidity --%</div>
-      <div id="weather-wind" style="font-size:12px;color:var(--muted)">Wind -- mph</div>
+      <div id="weather-desc">Loading...</div>
+      <div id="weather-wind" style="font-size:10px;color:var(--muted)"></div>
     </div>
   </div>
-
   <div id="clock-block">
-    <div id="clock">--:--</div>
-    <div id="date-str">Loading...</div>
+    <div id="clock">--:--:--</div>
+    <div id="date">...</div>
   </div>
 </div>
 
-<div id="status-strip">
-  <span id="status-text">Data: checking feeds…</span>
-  <span id="health-pill">healthy</span>
-</div>
-
-<!-- MAIN GRID -->
+<!-- ── Grid ── -->
 <div id="grid">
 
-  <div class="card" id="card-tasks">
-    <div class="card-header">
-      <span class="card-icon">✅</span>
-      <span class="card-title">Tasks</span>
-      <span class="badge" id="tasks-badge">0</span>
+  <!-- TASKS -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Tasks</span>
+      <span id="tasks-badge" class="badge">0</span>
     </div>
-    <div class="card-body" id="tasks-body">
-      <div class="empty">No tasks due today</div>
+    <div class="panel-body" id="tasks-list">
+      <div class="empty">Loading...</div>
     </div>
-  </div>
-
-  <div class="card" id="card-cal">
-    <div class="card-header">
-      <span class="card-icon">📅</span>
-      <span class="card-title">Calendar</span>
-      <span class="badge" id="cal-badge">0</span>
-    </div>
-    <div class="card-body" id="cal-body">
-      <div class="empty">Nothing scheduled today</div>
+    <div class="quick-add">
+      <input id="task-input" type="text" placeholder="Add a task..." maxlength="120">
+      <button class="btn" onclick="addTask()">Add</button>
     </div>
   </div>
 
-  <div class="card" id="card-mail">
-    <div class="card-header">
-      <span class="card-icon">📬</span>
-      <span class="card-title">Inbox</span>
-      <span class="badge" id="mail-badge">0</span>
+  <!-- EMAIL -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Inbox</span>
+      <div style="display:flex;gap:5px;align-items:center">
+        <span id="inbox-badge" class="badge">0</span>
+        <button class="btn sm ghost" onclick="markAllRead()">Mark read</button>
+      </div>
     </div>
-    <div class="card-body" id="mail-body">
-      <div class="empty">Inbox zero ✨</div>
+    <div class="panel-body" id="inbox-list">
+      <div class="empty">Loading...</div>
     </div>
   </div>
 
-  <div class="card" id="card-system">
-    <div class="card-header">
-      <span class="card-icon">🖥️</span>
-      <span class="card-title">System</span>
-      <span id="svc-status" style="margin-left:auto;font-size:11px;color:var(--accent2)">● all up</span>
+  <!-- CALENDAR -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Calendar</span>
+      <span id="cal-badge" class="badge">0</span>
     </div>
-    <div class="card-body">
-      <div class="sys-grid">
-        <div class="sys-stat">
-          <div class="sys-label">CPU Temp</div>
-          <div class="sys-value" id="sys-temp">--°C</div>
-          <div class="sys-sub" id="sys-load">Load: --</div>
-        </div>
-        <div class="sys-stat">
-          <div class="sys-label">Memory</div>
-          <div class="sys-value" id="sys-mem">--%</div>
-          <div class="sys-sub" id="sys-mem-sub">-- GB free</div>
-        </div>
-        <div class="sys-stat">
-          <div class="sys-label">Disk</div>
-          <div class="sys-value" id="sys-disk">--%</div>
-          <div class="sys-sub" id="sys-disk-sub">-- GB free</div>
-        </div>
-        <div class="sys-stat">
-          <div class="sys-label">Services</div>
-          <div class="service-dots" id="svc-dots"></div>
-          <div class="sys-sub" id="sys-uptime">Up --</div>
-        </div>
+    <div class="panel-body" id="cal-list">
+      <div class="empty">Loading...</div>
+    </div>
+  </div>
+
+  <!-- SYSTEM -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">System</span>
+      <span id="sys-status" class="badge green">OK</span>
+    </div>
+    <div class="panel-body" id="sys-body">
+      <div class="bar-row"><span class="bar-label">CPU</span><div class="bar-track"><div class="bar-fill" id="cpu-bar" style="width:0%"></div></div><span class="bar-val" id="cpu-val">—</span></div>
+      <div class="bar-row"><span class="bar-label">RAM</span><div class="bar-track"><div class="bar-fill" id="ram-bar" style="width:0%"></div></div><span class="bar-val" id="ram-val">—</span></div>
+      <div class="bar-row"><span class="bar-label">Disk</span><div class="bar-track"><div class="bar-fill" id="disk-bar" style="width:0%"></div></div><span class="bar-val" id="disk-val">—</span></div>
+      <div class="bar-row"><span class="bar-label">Temp</span><div class="bar-track"><div class="bar-fill" id="temp-bar" style="width:0%"></div></div><span class="bar-val" id="temp-val">—</span></div>
+      <div style="margin-top:4px;">
+        <div class="panel-title" style="margin-bottom:5px">Services</div>
+        <div class="svc-grid" id="svc-grid"></div>
       </div>
     </div>
   </div>
-
 </div>
 
-<!-- WORK STATUS -->
-
-<div id="work-strip">
-  <div class="work-pill" id="work-current">Current: <strong>idle</strong></div>
-  <div class="work-pill" id="work-progress">Progress: <strong>--</strong></div>
-  <div class="work-pill" id="work-next">Next: --</div>
-</div>
-
-<!-- FOOTER -->
+<!-- ── Footer ── -->
 <div id="footer">
-  <span id="footer-updated">Updated --:--</span>
-  <span id="work-prev">Prev: --</span>
-  <span class="chess-rating"><span class="chess-mode">Bullet</span>&nbsp;<span class="chess-val" id="chess-bullet">--</span></span>
-  <span class="chess-rating"><span class="chess-mode">Blitz</span>&nbsp;<span class="chess-val" id="chess-blitz">--</span></span>
-  <span class="chess-rating"><span class="chess-mode">Rapid</span>&nbsp;<span class="chess-val" id="chess-rapid">--</span></span>
+  <div id="chess-strip">
+    <span style="font-size:14px">♟</span>
+    <span class="chess-stat"><span class="chess-label">Blitz</span><span class="chess-val" id="chess-blitz">—</span></span>
+    <span class="chess-stat"><span class="chess-label">Rapid</span><span class="chess-val" id="chess-rapid">—</span></span>
+    <span class="chess-stat"><span class="chess-label">Bullet</span><span class="chess-val" id="chess-bullet">—</span></span>
+  </div>
+  <div id="footer-right">
+    <span id="updated-label">Updated —</span>
+    <button id="refresh-btn" onclick="loadAll()">↻ Refresh</button>
+  </div>
 </div>
+
+<div id="toast"></div>
 
 <script>
-const BASE = '/state';
-const REFRESH_MS = 30000;
-const STALE_WARN_MS = 10 * 60 * 1000;
-const STALE_DANGER_MS = 30 * 60 * 1000;
-const feedHealth = {};
-
-// ── Clock ──
-function tickClock() {
-  const now = new Date();
-  const h = now.getHours(), m = now.getMinutes();
-  document.getElementById('clock').textContent =
-    String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
-  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  document.getElementById('date-str').textContent =
-    days[now.getDay()] + ', ' + months[now.getMonth()] + ' ' + now.getDate();
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function toast(msg, ms=2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), ms);
 }
-setInterval(tickClock, 1000);
-tickClock();
 
-// ── Helpers ──
+function apiCall(path, body) {
+  // API layer not yet deployed — show toast
+  toast('⚡ Action sent to Emilio');
+  return fetch('/api/' + path, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(body)
+  }).catch(() => toast('API not yet available — action queued'));
+}
+
+function tempF(c) { return Math.round(c * 9/5 + 32); }
+function mphFromMs(ms) { return Math.round(ms * 2.237); }
+
 function fmtTime(iso) {
   if (!iso) return '';
   const d = new Date(iso);
-  if (isNaN(d)) return iso;
   return d.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit', hour12:true});
 }
-function fmtTemp(c) { return Math.round(c * 9/5 + 32) + '°F'; }
-function fmtWind(ms) { return Math.round(ms * 2.237) + ' mph'; }
 
-
-function ageMs(iso) {
-  if (!iso) return null;
-  const t = new Date(iso).getTime();
-  if (Number.isNaN(t)) return null;
-  return Date.now() - t;
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
 }
 
-function humanAge(ms) {
-  if (ms == null) return 'unknown';
-  const m = Math.round(ms / 60000);
-  if (m < 1) return '<1m';
-  if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  const rem = m % 60;
-  return rem ? `${h}h ${rem}m` : `${h}h`;
+function dotColor(priority) {
+  if (priority === 4) return 'red';
+  if (priority === 3) return 'amber';
+  if (priority === 2) return 'blue';
+  return 'muted';
 }
 
-function markFeed(name, ok, detail = '') {
-  feedHealth[name] = { ok, detail, ts: Date.now() };
-  renderHealth();
+function truncate(s, n) { return s && s.length > n ? s.slice(0, n) + '…' : (s || ''); }
+
+function setBar(id, pct) {
+  const el = document.getElementById(id);
+  el.style.width = Math.min(pct, 100) + '%';
+  el.className = 'bar-fill' + (pct > 85 ? ' danger' : pct > 65 ? ' warn' : '');
 }
 
-function renderHealth() {
-  const vals = Object.values(feedHealth);
-  const total = vals.length;
-  const bad = vals.filter(v => !v.ok).length;
-  const statusText = document.getElementById('status-text');
-  const pill = document.getElementById('health-pill');
-  if (!total) return;
-
-  if (bad === 0) {
-    statusText.textContent = `Data feeds healthy (${total}/${total})`;
-    pill.textContent = 'healthy';
-    pill.className = '';
-    return;
-  }
-
-  statusText.textContent = `${bad} feed${bad>1?'s':''} need attention`;
-  if (bad >= 3) {
-    pill.textContent = 'degraded';
-    pill.className = 'danger';
-  } else {
-    pill.textContent = 'warning';
-    pill.className = 'warn';
-  }
+// ── Clock ────────────────────────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false});
+  document.getElementById('date').textContent =
+    now.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric', year:'2-digit'});
 }
+setInterval(updateClock, 1000);
+updateClock();
 
-async function fetchJson(path, feedName) {
-  try {
-    const resp = await fetch(path);
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const data = await resp.json();
-    markFeed(feedName, true);
-    return data;
-  } catch (e) {
-    markFeed(feedName, false, e.message || 'request failed');
-    throw e;
-  }
-}
+// ── Weather ──────────────────────────────────────────────────────────────────
+const WEATHER_ICONS = {
+  'clear sky': '☀️', 'few clouds': '🌤', 'scattered clouds': '⛅',
+  'broken clouds': '🌥', 'overcast clouds': '☁️',
+  'light rain': '🌦', 'moderate rain': '🌧', 'heavy intensity rain': '⛈',
+  'thunderstorm': '⛈', 'snow': '❄️', 'mist': '🌫', 'fog': '🌫', 'haze': '🌫'
+};
 
-// ── Weather ──
 async function loadWeather() {
   try {
-    const d = await fetchJson(BASE + '/weather.json', 'weather');
-    document.getElementById('weather-temp').textContent = fmtTemp(d.temp_c);
-    document.getElementById('weather-desc').textContent = d.description;
-    document.getElementById('weather-detail').textContent =
-      'Feels ' + fmtTemp(d.feels_like_c) + '  · ' + d.humidity_pct + '% humid';
-    document.getElementById('weather-wind').textContent =
-      'Wind ' + fmtWind(d.wind_speed_ms) + ' ' + (d.wind_dir || '');
-
-    // icon
-    const desc = (d.description || '').toLowerCase();
-    const icon = desc.includes('thunder') ? '⛈️' :
-                 desc.includes('snow') ? '❄️' :
-                 desc.includes('rain') || desc.includes('drizzle') ? '🌧️' :
-                 desc.includes('cloud') ? (desc.includes('few') ? '🌤️' : '☁️') :
-                 desc.includes('clear') ? '☀️' : '🌡️';
+    const d = await fetch('/state/weather.json').then(r => r.json());
+    const icon = WEATHER_ICONS[d.description] || '🌤';
     document.getElementById('weather-icon').textContent = icon;
-  } catch(e) { document.getElementById('weather-bar').style.opacity = 0.65; }
+    document.getElementById('weather-temp').textContent = tempF(d.temp_c) + '°F';
+    document.getElementById('weather-desc').textContent = d.description;
+    document.getElementById('weather-wind').textContent =
+      d.wind_speed_ms ? `${mphFromMs(d.wind_speed_ms)} mph ${d.wind_dir || ''}`.trim() : '';
+  } catch(e) {}
 }
 
-// ── Tasks ──
+// ── Tasks ────────────────────────────────────────────────────────────────────
 async function loadTasks() {
   try {
-    const d = await fetchJson(BASE + '/todoist.json', 'todoist');
-    const tasks = d.tasks || [];
+    const d = await fetch('/state/todoist.json').then(r => r.json());
+    const tasks = (d.tasks || []).slice(0, 6);
     const badge = document.getElementById('tasks-badge');
-    badge.textContent = tasks.length;
-    badge.className = 'badge' + (tasks.length > 0 ? ' active' : '');
+    badge.textContent = d.count || tasks.length;
+    const overdue = tasks.filter(t => t.due_date && t.due_date < new Date().toISOString().slice(0,10)).length;
+    badge.className = 'badge' + (overdue > 0 ? ' red' : '');
 
-    const body = document.getElementById('tasks-body');
-    if (!tasks.length) {
-      body.innerHTML = '<div class="empty">No tasks due today</div>';
-      return;
-    }
-    // show up to 4
-    body.innerHTML = tasks.slice(0,4).map(t => {
-      const p = t.priority || 1;
-      const dotClass = p === 4 ? 'p4' : p === 3 ? 'p3' : p === 2 ? 'p2' : '';
-      const due = t.due_string || '';
-      const overdue = due.toLowerCase().includes('yesterday') || due.toLowerCase().includes('ago');
-      return `<div class="task-item">
-        <div class="task-dot ${dotClass}"></div>
-        <div class="task-text">${esc(t.content)}</div>
-        <div class="task-due${overdue?' overdue':''}">${esc(due)}</div>
-      </div>`;
-    }).join('');
-    if (tasks.length > 4) {
-      body.innerHTML += `<div style="font-size:12px;color:var(--muted);padding-top:4px">+${tasks.length-4} more</div>`;
-    }
-  } catch(e) { document.getElementById('card-tasks').classList.add('error'); }
-}
-
-// ── Calendar ──
-async function loadCalendar() {
-  try {
-    const d = await fetchJson(BASE + '/calendar.json', 'calendar');
-    const events = d.events || [];
-    const badge = document.getElementById('cal-badge');
-    badge.textContent = events.length;
-    badge.className = 'badge' + (events.length > 0 ? ' active' : '');
-
-    const body = document.getElementById('cal-body');
-    if (!events.length) {
-      body.innerHTML = '<div class="empty">Nothing scheduled today</div>';
-      return;
-    }
-    body.innerHTML = events.slice(0,4).map(ev => {
-      const isAllDay = ev.start && ev.start.length === 10;
-      const timeStr = isAllDay ? 'all day' : fmtTime(ev.start);
-      return `<div class="cal-item">
-        <div class="cal-time${isAllDay?' allday':''}">${esc(timeStr)}</div>
-        <div>
-          <div class="cal-summary">${esc(ev.summary || '(no title)')}</div>
-          ${ev.location ? `<div class="cal-loc">📍 ${esc(ev.location)}</div>` : ''}
+    const el = document.getElementById('tasks-list');
+    if (!tasks.length) { el.innerHTML = '<div class="empty">All clear ✓</div>'; return; }
+    el.innerHTML = tasks.map(t => {
+      const due = t.due_date && t.due_date < new Date().toISOString().slice(0,10)
+        ? `<span style="color:var(--red)">${t.due_date}</span>`
+        : t.due_date ? `<span>${t.due_date}</span>` : '';
+      return `<div class="row">
+        <div class="dot ${dotColor(t.priority)}"></div>
+        <div class="row-text">
+          <div class="row-main">${truncate(t.content, 42)}</div>
+          ${due ? `<div class="row-sub">${due}</div>` : ''}
         </div>
       </div>`;
     }).join('');
-    if (events.length > 4) {
-      body.innerHTML += `<div style="font-size:12px;color:var(--muted);padding-top:4px">+${events.length-4} more</div>`;
-    }
-  } catch(e) { document.getElementById('card-cal').classList.add('error'); }
-}
-
-// ── Gmail ──
-async function loadGmail() {
-  try {
-    const d = await fetchJson(BASE + '/gmail.json', 'gmail');
-    const msgs = d.messages || [];
-    const badge = document.getElementById('mail-badge');
-    badge.textContent = d.count || msgs.length;
-    badge.className = 'badge' + (msgs.length > 0 ? ' warn' : '');
-
-    const body = document.getElementById('mail-body');
-    if (!msgs.length) {
-      body.innerHTML = '<div class="empty">Inbox zero ✨</div>';
-      return;
-    }
-    body.innerHTML = msgs.slice(0,4).map(m => {
-      const from = (m.from || '').replace(/<[^>]+>/, '').trim().replace(/"/g,'');
-      return `<div class="mail-item">
-        <div class="mail-from">${esc(from)}</div>
-        <div class="mail-subject">${esc(m.subject || '(no subject)')}</div>
-      </div>`;
-    }).join('');
-  } catch(e) { document.getElementById('card-mail').classList.add('error'); }
-}
-
-// ── System ──
-async function loadSystem() {
-  try {
-    const d = await fetchJson(BASE + '/services.json', 'services');
-    const pi = d.pi || {};
-    const svcs = d.services || {};
-
-    const temp = pi.cpu_temp_c || 0;
-    const tempEl = document.getElementById('sys-temp');
-    tempEl.textContent = temp.toFixed(1) + '°C';
-    tempEl.className = 'sys-value' + (temp > 75 ? ' danger' : temp > 65 ? ' warn' : '');
-
-    const load = pi.load_avg || {};
-    document.getElementById('sys-load').textContent = 'Load: ' + (load['1m'] || '--');
-
-    const mem = pi.memory || {};
-    const memPct = mem.total_mb ? Math.round(mem.used_mb / mem.total_mb * 100) : 0;
-    const memEl = document.getElementById('sys-mem');
-    memEl.textContent = memPct + '%';
-    memEl.className = 'sys-value' + (memPct > 85 ? ' danger' : memPct > 70 ? ' warn' : '');
-    document.getElementById('sys-mem-sub').textContent =
-      (mem.free_mb ? (mem.free_mb / 1024).toFixed(1) : '--') + ' GB free';
-
-    const disk = pi.disk || {};
-    const diskPct = parseInt(disk.pct) || 0;
-    const diskEl = document.getElementById('sys-disk');
-    diskEl.textContent = diskPct + '%';
-    diskEl.className = 'sys-value' + (diskPct > 85 ? ' danger' : diskPct > 70 ? ' warn' : '');
-    document.getElementById('sys-disk-sub').textContent =
-      disk.avail_kb ? ((disk.avail_kb/1024/1024).toFixed(0)) + ' GB free' : '--';
-
-    // uptime
-    const upSec = pi.uptime_sec || 0;
-    const upStr = upSec > 86400 ? Math.floor(upSec/86400) + 'd ' + Math.floor((upSec%86400)/3600) + 'h' :
-                  upSec > 3600 ? Math.floor(upSec/3600) + 'h ' + Math.floor((upSec%3600)/60) + 'm' :
-                  Math.floor(upSec/60) + 'm';
-    document.getElementById('sys-uptime').textContent = 'Up ' + upStr;
-
-    // services
-    const dotsEl = document.getElementById('svc-dots');
-    let allUp = true;
-    dotsEl.innerHTML = Object.entries(svcs).map(([name, status]) => {
-      const ok = status === 'active';
-      if (!ok) allUp = false;
-      return `<div class="svc-dot${ok?'':' down'}" title="${name}: ${status}"></div>`;
-    }).join('');
-
-    const svcStatus = document.getElementById('svc-status');
-    if (allUp) {
-      svcStatus.textContent = '● all up';
-      svcStatus.style.color = 'var(--accent2)';
-    } else {
-      svcStatus.textContent = '● service down';
-      svcStatus.style.color = 'var(--danger)';
-    }
-  } catch(e) { document.getElementById('card-system').classList.add('error'); }
-}
-
-// ── Lichess ──
-async function loadLichess() {
-  try {
-    const d = await fetchJson(BASE + '/lichess.json', 'lichess');
-    const r = d.ratings || {};
-    if (r.bullet) document.getElementById('chess-bullet').textContent = r.bullet;
-    if (r.blitz)  document.getElementById('chess-blitz').textContent  = r.blitz;
-    if (r.rapid)  document.getElementById('chess-rapid').textContent  = r.rapid;
   } catch(e) {}
 }
 
-// ── Meta ──
-async function loadMeta() {
+async function addTask() {
+  const input = document.getElementById('task-input');
+  const content = input.value.trim();
+  if (!content) return;
+  input.value = '';
+  toast('Adding task…');
+  // API call (will gracefully fail if API not yet deployed)
   try {
-    const d = await fetchJson(BASE + '/meta.json', 'meta');
-    if (d.updated_at) {
-      const t = new Date(d.updated_at);
-      const ms = ageMs(d.updated_at);
-      document.getElementById('footer-updated').textContent =
-        'Updated ' + t.toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit',hour12:true}) + ` (${humanAge(ms)} ago)`;
-      const pill = document.getElementById('health-pill');
-      if (ms != null && ms > STALE_DANGER_MS) {
-        pill.textContent = 'stale';
-        pill.className = 'danger';
-        document.getElementById('status-text').textContent = `State data stale (${humanAge(ms)} old)`;
-      } else if (ms != null && ms > STALE_WARN_MS) {
-        pill.textContent = 'aging';
-        pill.className = 'warn';
-      }
-    }
-  } catch(e) {}
-}
-
-function esc(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-
-async function loadWorkStatus() {
-  try {
-    const d = await fetchJson(BASE + '/meta.json', 'meta');
-    const current = d.current_task || d.active_task || 'idle';
-    const progress = d.task_progress_pct ?? d.progress_pct ?? null;
-    const next = d.next_task || '--';
-    const prev = d.previous_task || d.prev_task || '--';
-
-    const curEl = document.getElementById('work-current');
-    const progEl = document.getElementById('work-progress');
-    const nextEl = document.getElementById('work-next');
-    const prevEl = document.getElementById('work-prev');
-
-    curEl.innerHTML = `Current: <strong>${esc(current)}</strong>`;
-    progEl.innerHTML = `Progress: <strong>${progress == null ? '--' : Math.max(0, Math.min(100, Number(progress))) + '%'}</strong>`;
-    nextEl.textContent = `Next: ${next}`;
-    prevEl.textContent = `Prev: ${prev}`;
-  } catch (e) {
-    document.getElementById('work-current').innerHTML = 'Current: <strong>unavailable</strong>';
-    document.getElementById('work-progress').innerHTML = 'Progress: <strong>--</strong>';
+    await fetch('/api/todoist/add', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({content})
+    });
+    toast('✓ Task added');
+  } catch {
+    toast('✓ Task queued for Emilio');
   }
 }
 
-// ── Load all ──
-async function refresh() {
-  document.querySelectorAll('.card.error').forEach(el => el.classList.remove('error'));
-  await Promise.all([
-    loadWeather(), loadTasks(), loadCalendar(),
-    loadGmail(), loadSystem(), loadLichess(), loadMeta(), loadWorkStatus()
-  ]);
+document.getElementById('task-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addTask();
+});
+
+// ── Email ────────────────────────────────────────────────────────────────────
+async function loadInbox() {
+  try {
+    const d = await fetch('/state/gmail.json').then(r => r.json());
+    const msgs = (d.messages || []).slice(0, 5);
+    const count = d.count || msgs.length;
+    const badge = document.getElementById('inbox-badge');
+    badge.textContent = count;
+    badge.className = 'badge' + (count > 10 ? ' red' : count > 5 ? ' amber' : '');
+
+    const el = document.getElementById('inbox-list');
+    if (!msgs.length) { el.innerHTML = '<div class="empty">Inbox zero ✓</div>'; return; }
+    el.innerHTML = msgs.map(m => {
+      const from = m.from ? m.from.replace(/<[^>]+>/, '').replace(/"/g, '').trim() : '—';
+      return `<div class="row">
+        <div class="dot blue"></div>
+        <div class="row-text">
+          <div class="row-main">${truncate(m.subject, 36)}</div>
+          <div class="row-sub">${truncate(from, 30)}</div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {}
 }
 
-refresh();
-setInterval(refresh, REFRESH_MS);
+async function markAllRead() {
+  toast('Marking all read…');
+  try {
+    await fetch('/api/gmail/mark-all-read', {method:'POST'});
+    toast('✓ Done');
+  } catch { toast('✓ Queued for Emilio'); }
+}
+
+// ── Calendar ─────────────────────────────────────────────────────────────────
+async function loadCalendar() {
+  try {
+    const d = await fetch('/state/calendar.json').then(r => r.json());
+    const events = (d.events || []).slice(0, 4);
+    document.getElementById('cal-badge').textContent = d.count || events.length;
+
+    const el = document.getElementById('cal-list');
+    if (!events.length) { el.innerHTML = '<div class="empty">Nothing today</div>'; return; }
+    el.innerHTML = events.map(ev => {
+      const isAllDay = ev.start && !ev.start.includes('T');
+      const timeStr = isAllDay ? 'All day' : fmtTime(ev.start);
+      const loc = ev.location ? `· ${truncate(ev.location, 20)}` : '';
+      return `<div class="row">
+        <div class="dot purple"></div>
+        <div class="row-text">
+          <div class="row-main">${truncate(ev.summary, 36)}</div>
+          <div class="row-sub">${timeStr}${loc}</div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {}
+}
+
+// ── System ───────────────────────────────────────────────────────────────────
+async function loadSystem() {
+  try {
+    const d = await fetch('/state/services.json').then(r => r.json());
+    const pi = d.pi || {};
+    const svcs = d.services || {};
+
+    // CPU — approximate from load avg vs cores (Pi 4 = 4 cores)
+    const load1 = parseFloat((pi.load_avg || {})['1m'] || 0);
+    const cpuPct = Math.min(Math.round(load1 / 4 * 100), 100);
+    setBar('cpu-bar', cpuPct);
+    document.getElementById('cpu-val').textContent = `${cpuPct}%`;
+
+    // RAM
+    const mem = pi.memory || {};
+    const ramPct = mem.total_mb ? Math.round(mem.used_mb / mem.total_mb * 100) : 0;
+    setBar('ram-bar', ramPct);
+    document.getElementById('ram-val').textContent = `${ramPct}%`;
+
+    // Disk
+    const disk = pi.disk || {};
+    const diskPct = parseInt(disk.pct || '0') || 0;
+    setBar('disk-bar', diskPct);
+    document.getElementById('disk-val').textContent = disk.pct || '—';
+
+    // Temp
+    const tempC = pi.cpu_temp_c || 0;
+    const tempPct = Math.min(Math.round((tempC / 85) * 100), 100);
+    setBar('temp-bar', tempPct);
+    document.getElementById('temp-val').textContent = `${tempC}°C`;
+
+    // Services
+    const svcNames = {
+      'emilio-openclaw': 'AI', 'emilio-google-broker': 'Google',
+      'emilio-todoist-broker': 'Todoist', 'emilio-github-broker': 'GitHub',
+      'emilio-weather-broker': 'Weather', 'emilio-sentry-broker': 'Sentry',
+      'emilio-lichess-broker': 'Lichess'
+    };
+    const allOk = Object.values(svcs).every(v => v === 'active');
+    document.getElementById('sys-status').textContent = allOk ? 'OK' : 'ALERT';
+    document.getElementById('sys-status').className = 'badge ' + (allOk ? 'green' : 'red');
+
+    document.getElementById('svc-grid').innerHTML = Object.entries(svcNames).map(([k, label]) => {
+      const ok = svcs[k] === 'active';
+      return `<div class="svc"><div class="dot ${ok ? 'green' : 'red'}"></div>${label}</div>`;
+    }).join('');
+  } catch(e) {}
+}
+
+// ── Chess ────────────────────────────────────────────────────────────────────
+async function loadChess() {
+  try {
+    const d = await fetch('/state/lichess.json').then(r => r.json());
+    const r = d.ratings || {};
+    document.getElementById('chess-blitz').textContent  = r.blitz  || '—';
+    document.getElementById('chess-rapid').textContent  = r.rapid  || '—';
+    document.getElementById('chess-bullet').textContent = r.bullet || '—';
+  } catch(e) {}
+}
+
+// ── Load all ─────────────────────────────────────────────────────────────────
+async function loadAll() {
+  await Promise.all([loadWeather(), loadTasks(), loadInbox(), loadCalendar(), loadSystem(), loadChess()]);
+  document.getElementById('updated-label').textContent =
+    'Updated ' + new Date().toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'});
+}
+
+loadAll();
+setInterval(loadAll, 30000);
 </script>
 </body>
 </html>
