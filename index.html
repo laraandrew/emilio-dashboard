@@ -424,5 +424,35 @@ document.getElementById('add-event-btn').addEventListener('click', ()=>fetch('/a
 loadData();
 setInterval(loadData, 30000);
 </script>
+<!-- emilio-deploy-watcher:start -->
+<script>
+(() => {
+  const DEPLOY_STATE_URL = '/state/deploy.json';
+  let currentDeploySha = null;
+
+  async function checkDeployVersion() {
+    try {
+      const res = await fetch(`${DEPLOY_STATE_URL}?t=${Date.now()}`, { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = await res.json();
+      const nextSha = data.sha || null;
+      if (!nextSha) return;
+
+      if (currentDeploySha && currentDeploySha !== nextSha) {
+        window.location.reload();
+        return;
+      }
+
+      currentDeploySha = nextSha;
+    } catch (err) {
+      console.debug('deploy version check failed', err);
+    }
+  }
+
+  checkDeployVersion();
+  setInterval(checkDeployVersion, 15000);
+})();
+</script>
+<!-- emilio-deploy-watcher:end -->
 </body>
 </html>

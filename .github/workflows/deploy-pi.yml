@@ -59,6 +59,7 @@ jobs:
 
             sleep 2
             curl -fsS http://localhost >/dev/null
+            curl -fsS http://localhost/state/deploy.json >/dev/null
             curl -fsS https://emilio.andrewlara.com >/dev/null || true
 
   deploy-secrets-missing:

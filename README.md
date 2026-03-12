@@ -39,7 +39,9 @@ This dashboard is optimized for at-a-glance daily operation and monitoring from 
 
 ### Current Pi deploy behavior
 - Nginx serves dashboard from `/var/lib/emilio/dashboard`
-- A system timer runs `emilio-dashboard-deploy.service` every ~5 minutes to pull and sync latest `main`
+- `.github/workflows/deploy-pi.yml` can trigger an immediate deploy on every push to `main` when `PI_HOST`, `PI_USER`, and `PI_SSH_KEY` are configured
+- `emilio-dashboard-deploy.timer` remains a fallback poller and will pick up `main` within about 5 minutes if the GitHub deploy workflow is unavailable
+- The dashboard watches `/state/deploy.json` and automatically reloads when the deployed Git SHA changes, so the Pi kiosk screen and website stay on the same build
 - State files are refreshed by `emilio-state-refresh.timer`
 
 ### GitHub Actions deploy on push
@@ -47,8 +49,8 @@ This repo includes `.github/workflows/deploy-pi.yml`.
 
 On every push to `main`, it:
 1. Validates `index.html`
-2. SSHes into the Pi and starts `emilio-dashboard-deploy.service` (or fallback deploy script)
-3. Runs a localhost health check
+2. SSHes into the Pi and starts `emilio-dashboard-deploy.service`
+3. Confirms the dashboard and `/state/deploy.json` are reachable on localhost
 
 Required repo secrets:
 - `PI_HOST`
