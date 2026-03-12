@@ -1,0 +1,73 @@
+name: Deploy Dashboard to Pi
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: emilio-dashboard-deploy
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Basic dashboard sanity check
+        run: |
+          test -f index.html
+          python3 - <<'PY'
+          from pathlib import Path
+          c = Path('index.html').read_text()
+          assert '<html' in c and '<body' in c and '</html>' in c
+          print('index.html sanity OK:', len(c), 'bytes')
+          PY
+
+  deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    if: ${{ secrets.PI_HOST != '' && secrets.PI_USER != '' && secrets.PI_SSH_KEY != '' }}
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.PI_HOST }}
+          username: ${{ secrets.PI_USER }}
+          key: ${{ secrets.PI_SSH_KEY }}
+          port: ${{ secrets.PI_PORT || '22' }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            if command -v systemctl >/dev/null 2>&1; then
+              # Preferred: root-owned deploy timer/service path
+              if systemctl list-unit-files | grep -q '^emilio-dashboard-deploy.service'; then
+                sudo systemctl start emilio-dashboard-deploy.service
+              elif [ -x /usr/local/bin/deploy-emilio-dashboard ]; then
+                sudo /usr/local/bin/deploy-emilio-dashboard origin/main
+              else
+                echo "No known deploy command found on host" >&2
+                exit 1
+              fi
+            else
+              echo "systemctl unavailable on target" >&2
+              exit 1
+            fi
+
+            sleep 2
+            curl -fsS http://localhost >/dev/null
+            curl -fsS http://localhost/state/deploy.json >/dev/null
+            curl -fsS https://emilio.andrewlara.com >/dev/null || true
+
+  deploy-secrets-missing:
+    needs: validate
+    runs-on: ubuntu-latest
+    if: ${{ !(secrets.PI_HOST != '' && secrets.PI_USER != '' && secrets.PI_SSH_KEY != '') }}
+    steps:
+      - name: Explain skipped deploy
+        run: |
+          echo "PI_HOST / PI_USER / PI_SSH_KEY secrets are not configured."
+          echo "Validation passed; deploy step skipped."

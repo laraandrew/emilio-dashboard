@@ -57,5 +57,5 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '✅ Dashboard validated. **Deploy goes live on Pi within 5 minutes of merge** (auto-deploy polls every 5min).\n\n🌐 After merge, check: http://emilio.local or https://emilio.andrewlara.com (once Cloudflare is configured)'
+              body: '✅ Dashboard validated. Merge to `main` triggers the Pi deploy workflow when `PI_*` secrets are configured, and the dashboard auto-reloads on the Pi screen and website after deploy.\n\nFallback: if the GitHub deploy workflow is unavailable, the Pi poller still updates within about 5 minutes.\n\n🌐 After merge, check: http://emilio.local or https://emilio.andrewlara.com'
             })
