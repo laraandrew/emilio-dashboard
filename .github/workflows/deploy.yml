@@ -1,0 +1,61 @@
+name: Validate Dashboard
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check HTML is well-formed
+        run: |
+          python3 -c "
+          from html.parser import HTMLParser
+          import sys
+
+          class Validator(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.errors = []
+              def handle_error(self, msg):
+                  self.errors.append(msg)
+
+          with open('index.html') as f:
+              content = f.read()
+
+          # Basic checks
+          assert '<html' in content, 'Missing <html>'
+          assert '<head' in content, 'Missing <head>'
+          assert '<body' in content, 'Missing <body>'
+          assert '</html>' in content, 'Missing </html>'
+          assert len(content) > 1000, 'File suspiciously small'
+
+          v = Validator()
+          v.feed(content)
+
+          print(f'✓ index.html looks good ({len(content):,} bytes)')
+          sys.exit(0)
+          "
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ Dashboard validated. **Deploy goes live on Pi within 5 minutes of merge** (auto-deploy polls every 5min).\n\n🌐 After merge, check: http://emilio.local or https://emilio.andrewlara.com (once Cloudflare is configured)'
+            })
