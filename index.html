@@ -42,7 +42,7 @@ html, body { width: 800px; height: 480px; overflow: hidden; background: var(--bg
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
   gap: 1px;
-  height: 396px; /* 480 - 44 header - 40 footer */
+  height: 370px; /* 480 - 44 header - 24 work strip - 40 footer - 2 borders */
   background: var(--border);
 }
 .panel { background: var(--card); padding: 10px 12px; overflow: hidden; display: flex; flex-direction: column; gap: 6px; }
@@ -98,7 +98,34 @@ html, body { width: 800px; height: 480px; overflow: hidden; background: var(--bg
 .svc { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--muted); }
 .svc .dot { width: 5px; height: 5px; margin-top: 0; }
 
-/* ── Footer ── */
+/* ── Work strip + Footer ── */
+#work-strip {
+  height: 24px;
+  display: grid;
+  grid-template-columns: 2fr 1fr 1.5fr 1fr;
+  gap: 8px;
+  align-items: center;
+  padding: 0 10px;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+}
+.work-pill {
+  min-width: 0;
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.work-pill strong { color: var(--text); }
+#work-progress.low strong { color: var(--muted); }
+#work-progress.mid strong { color: var(--amber); }
+#work-progress.high strong { color: var(--green); }
+#work-state { text-transform: uppercase; font-weight: 700; }
+#work-state.running { color: var(--green); }
+#work-state.waiting { color: var(--amber); }
+#work-state.blocked { color: var(--red); }
+
 #footer {
   display: flex; align-items: center; justify-content: space-between;
   height: 40px; padding: 0 14px;
@@ -226,6 +253,14 @@ html, body { width: 800px; height: 480px; overflow: hidden; background: var(--bg
       </div>
     </div>
   </div>
+</div>
+
+<!-- ── Work strip ── -->
+<div id="work-strip">
+  <div class="work-pill" id="work-current">Current: <strong>idle</strong></div>
+  <div class="work-pill" id="work-progress">Progress: <strong>--</strong></div>
+  <div class="work-pill" id="work-next">Next: --</div>
+  <div class="work-pill" id="work-state">State: idle</div>
 </div>
 
 <!-- ── Footer ── -->
@@ -505,6 +540,42 @@ async function loadSystem() {
   } catch(e) {}
 }
 
+// ── Work status ──────────────────────────────────────────────────────────────
+async function loadWorkStatus() {
+  try {
+    const d = await fetch('/state/meta.json').then(r => r.json());
+    const current = d.current_task || d.active_task || 'idle';
+    const progressRaw = d.task_progress_pct ?? d.progress_pct ?? null;
+    const progress = progressRaw == null ? null : Math.max(0, Math.min(100, Number(progressRaw)));
+    const next = d.next_task || '--';
+    const state = (d.task_state || d.work_state || (progress === 100 ? 'done' : current === 'idle' ? 'idle' : 'running')).toLowerCase();
+
+    const curEl = document.getElementById('work-current');
+    const progEl = document.getElementById('work-progress');
+    const nextEl = document.getElementById('work-next');
+    const stateEl = document.getElementById('work-state');
+
+    curEl.innerHTML = `Current: <strong>${truncate(current, 26)}</strong>`;
+    progEl.innerHTML = `Progress: <strong>${progress == null ? '--' : progress + '%'}</strong>`;
+    progEl.classList.remove('low','mid','high');
+    if (progress == null || progress < 25) progEl.classList.add('low');
+    else if (progress < 75) progEl.classList.add('mid');
+    else progEl.classList.add('high');
+
+    nextEl.textContent = `Next: ${truncate(next, 22)}`;
+    stateEl.textContent = `State: ${state}`;
+    stateEl.classList.remove('running','blocked','waiting');
+    if (state.includes('block')) stateEl.classList.add('blocked');
+    else if (state.includes('wait') || state.includes('review') || state.includes('pause')) stateEl.classList.add('waiting');
+    else stateEl.classList.add('running');
+  } catch(e) {
+    document.getElementById('work-current').innerHTML = 'Current: <strong>unavailable</strong>';
+    document.getElementById('work-progress').innerHTML = 'Progress: <strong>--</strong>';
+    document.getElementById('work-next').textContent = 'Next: --';
+    document.getElementById('work-state').textContent = 'State: unknown';
+  }
+}
+
 // ── Chess ────────────────────────────────────────────────────────────────────
 async function loadChess() {
   try {
@@ -543,7 +614,7 @@ document.querySelectorAll('.touch-cell').forEach(cell => {
 
 // ── Load all ─────────────────────────────────────────────────────────────────
 async function loadAll() {
-  await Promise.all([loadWeather(), loadTasks(), loadInbox(), loadCalendar(), loadSystem(), loadChess()]);
+  await Promise.all([loadWeather(), loadTasks(), loadInbox(), loadCalendar(), loadSystem(), loadWorkStatus(), loadChess()]);
   document.getElementById('updated-label').textContent =
     'Updated ' + new Date().toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'});
 }
